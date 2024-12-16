@@ -6,13 +6,20 @@ use embassy_net::{tcp::TcpSocket, Ipv4Address, Stack, StackResources};
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 use esp_hal::{
-    prelude::*, rng::Rng, timer::timg::TimerGroup, twai::{self, TwaiMode}
+    prelude::*,
+    rng::Rng,
+    timer::timg::TimerGroup,
+    twai::{self, TwaiMode},
 };
 
 use esp_println::println;
 use esp_wifi::{
     init,
-    wifi::{ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent, WifiStaDevice, WifiState}, EspWifiController,
+    wifi::{
+        ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent, WifiStaDevice,
+        WifiState,
+    },
+    EspWifiController,
 };
 
 // MQTT related imports
@@ -51,33 +58,36 @@ async fn main(spawner: Spawner) -> ! {
         config.cpu_clock = CpuClock::max();
         config
     });
+    esp_alloc::heap_allocator!(72 * 1024);
     let timg0 = TimerGroup::new(peripherals.TIMG0);
+    let timg1 = TimerGroup::new(peripherals.TIMG1);
+    esp_hal_embassy::init(timg1.timer0);
     let mut rng = Rng::new(peripherals.RNG);
     let init = &*mk_static!(
         EspWifiController<'static>,
-        init(timg0.timer0, rng.clone(), peripherals.RADIO_CLK).unwrap()
+        init(timg0.timer0, rng, peripherals.RADIO_CLK).unwrap()
     );
     let wifi = peripherals.WIFI;
     let (wifi_interface, controller) =
-        esp_wifi::wifi::new_with_mode(&init, wifi, WifiStaDevice).unwrap();
-        let config = embassy_net::Config::dhcpv4(Default::default());
+        esp_wifi::wifi::new_with_mode(init, wifi, WifiStaDevice).unwrap();
+    let config = embassy_net::Config::dhcpv4(Default::default());
 
-        let seed = (rng.random() as u64) << 32 | rng.random() as u64;
-    
-        // Init network stack
-        let stack = &*mk_static!(
-            Stack<WifiDevice<'_, WifiStaDevice>>,
-            Stack::new(
-                wifi_interface,
-                config,
-                mk_static!(StackResources<3>, StackResources::<3>::new()),
-                seed
-            )
-        );
-    
-        spawner.spawn(connection(controller)).ok();
-        spawner.spawn(net_task(&stack)).ok();
-    
+    let seed = (rng.random() as u64) << 32 | rng.random() as u64;
+
+    // Init network stack
+    let stack = &*mk_static!(
+        Stack<WifiDevice<'_, WifiStaDevice>>,
+        Stack::new(
+            wifi_interface,
+            config,
+            mk_static!(StackResources<3>, StackResources::<3>::new()),
+            seed
+        )
+    );
+
+    spawner.spawn(connection(controller)).ok();
+    spawner.spawn(net_task(stack)).ok();
+
     info!("Welcome to esp-diag version: 0.1.2\r");
 
     let tx_pin = peripherals.GPIO1;
@@ -89,7 +99,8 @@ async fn main(spawner: Spawner) -> ! {
         tx_pin,
         CAN_BAUDRATE,
         TwaiMode::Normal,
-    ).into_async();
+    )
+    .into_async();
     twai_config.set_filter(
         const {
             twai::filter::SingleStandardFilter::new(
@@ -122,17 +133,16 @@ async fn main(spawner: Spawner) -> ! {
     loop {
         Timer::after(Duration::from_millis(1_000)).await;
 
-        let mut socket = TcpSocket::new(&stack, &mut rx_buffer, &mut tx_buffer);
+        let mut socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
 
         socket.set_timeout(Some(embassy_time::Duration::from_secs(10)));
         let broker_ip = Ipv4Address::new(3, 125, 183, 56);
         println!("Using hardcoded IP: {:?}", broker_ip);
         // TODO: perform a DNS query
-        
+
         let remote_endpoint = embassy_net::IpEndpoint {
             addr: embassy_net::IpAddress::Ipv4(broker_ip),
-            port: 1883
-            
+            port: 1883,
         };
         println!("connecting...");
         let connection = socket.connect(remote_endpoint).await;
@@ -174,7 +184,7 @@ async fn main(spawner: Spawner) -> ! {
                 match client
                     .send_message(
                         "can/1",
-                        &[b'H', b'E', b'L', b'L', b'O', b'\n'],
+                        b"HELLO\n",
                         rust_mqtt::packet::v5::publish_packet::QualityOfService::QoS1,
                         true,
                     )
@@ -203,13 +213,10 @@ async fn connection(mut controller: WifiController<'static>) {
     println!("start connection task");
     println!("Device capabilities: {:?}", controller.capabilities());
     loop {
-        match esp_wifi::wifi::wifi_state() {
-            WifiState::StaConnected => {
-                // wait until we're no longer connected
-                controller.wait_for_event(WifiEvent::StaDisconnected).await;
-                Timer::after(Duration::from_millis(5000)).await
-            }
-            _ => {}
+        if esp_wifi::wifi::wifi_state() == WifiState::StaConnected {
+            // wait until we're no longer connected
+            controller.wait_for_event(WifiEvent::StaDisconnected).await;
+            Timer::after(Duration::from_millis(5000)).await
         }
         if !matches!(controller.is_started(), Ok(true)) {
             let client_config = Configuration::Client(ClientConfiguration {
