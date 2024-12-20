@@ -4,7 +4,9 @@
 use embassy_executor::Spawner;
 use embassy_net::{tcp::TcpSocket, Ipv4Address, Stack, StackResources};
 use embassy_time::{Duration, Timer};
-use embedded_tls::{Aes128GcmSha256, Certificate, TlsConfig, TlsConnection, TlsContext, UnsecureProvider};
+use embedded_tls::{
+    Aes128GcmSha256, Certificate, TlsConfig, TlsConnection, TlsContext, UnsecureProvider,
+};
 use esp_backtrace as _;
 use esp_hal::{
     prelude::*,
@@ -22,7 +24,10 @@ use esp_wifi::{
 };
 // MQTT related imports
 use rust_mqtt::{
-    client::{client::MqttClient, client_config::{ClientConfig, MqttVersion}},
+    client::{
+        client::MqttClient,
+        client_config::{ClientConfig, MqttVersion},
+    },
     packet::v5::reason_codes::ReasonCode,
     utils::rng_generator::CountingRng,
 };
@@ -64,15 +69,12 @@ async fn main(spawner: Spawner) -> ! {
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     let timg1 = TimerGroup::new(peripherals.TIMG1);
     esp_hal_embassy::init(timg1.timer0);
-    let trng = &mut *mk_static!(
-        Trng<'static>,
-        Trng::new(peripherals.RNG, peripherals.ADC1)
-    );
+    let trng = &mut *mk_static!(Trng<'static>, Trng::new(peripherals.RNG, peripherals.ADC1));
     // let mut trng = Trng::new(peripherals.RNG, peripherals.ADC1);
     // let mut rng = Rng::new(peripherals.RNG);
     let init = &*mk_static!(
         EspWifiController<'static>,
-        init(timg0.timer0, trng.rng.clone(), peripherals.RADIO_CLK).unwrap()
+        init(timg0.timer0, trng.rng, peripherals.RADIO_CLK).unwrap()
     );
     let wifi = peripherals.WIFI;
     let (wifi_interface, controller) =
@@ -175,10 +177,12 @@ async fn main(spawner: Spawner) -> ! {
         let mut tls_connection =
             TlsConnection::new(socket, &mut read_record_buffer, &mut write_record_buffer);
 
-        let _ = tls_connection.open(TlsContext::new(
-            &tls_cfg,
-            UnsecureProvider::new::<Aes128GcmSha256>(&mut *trng),
-        )).await;
+        let _ = tls_connection
+            .open(TlsContext::new(
+                &tls_cfg,
+                UnsecureProvider::new::<Aes128GcmSha256>(&mut *trng),
+            ))
+            .await;
         let mut config = ClientConfig::new(MqttVersion::MQTTv5, CountingRng(20000));
         config.add_max_subscribe_qos(rust_mqtt::packet::v5::publish_packet::QualityOfService::QoS1);
         config.add_username("bike_test");
