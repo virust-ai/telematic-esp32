@@ -8,6 +8,7 @@ use esp_backtrace as _;
 use esp_hal::{
     prelude::*,
     rng::Trng,
+    rtc_cntl::{Rtc, RwdtStage},
     timer::timg::TimerGroup,
     twai::{self, TwaiMode},
 };
@@ -18,8 +19,6 @@ use esp_wifi::{
     wifi::{WifiDevice, WifiStaDevice},
     EspWifiController,
 };
-
-use log::info;
 
 macro_rules! mk_static {
     ($t:ty,$val:expr) => {{
@@ -67,6 +66,10 @@ async fn main(spawner: Spawner) -> ! {
     let (wifi_interface, controller) =
         esp_wifi::wifi::new_with_mode(init, wifi, WifiStaDevice).unwrap();
     let config = embassy_net::Config::dhcpv4(Default::default());
+    let mut rtc = Rtc::new(peripherals.LPWR);
+
+    rtc.rwdt.enable();
+    rtc.rwdt.set_timeout(RwdtStage::Stage0, 5.secs());
 
     let seed = 1234;
 
@@ -80,8 +83,6 @@ async fn main(spawner: Spawner) -> ! {
             seed
         )
     );
-
-    info!("Welcome to esp-diag version: 0.1.2\r");
 
     let tx_pin = peripherals.GPIO1;
     let rx_pin = peripherals.GPIO10;
@@ -113,6 +114,7 @@ async fn main(spawner: Spawner) -> ! {
     spawner.spawn(net_task(stack)).ok();
     spawner.spawn(mqtt_handler(stack, trng, channel)).ok();
     loop {
-        Timer::after_secs(10).await;
+        Timer::after_secs(2).await;
+        rtc.rwdt.feed();
     }
 }
