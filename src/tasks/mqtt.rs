@@ -6,6 +6,7 @@ use embedded_tls::{
 use esp_hal::rng::Trng;
 use esp_println::println;
 use esp_wifi::wifi::{WifiDevice, WifiStaDevice};
+use log::info;
 use rust_mqtt::{
     client::{
         client::MqttClient,
@@ -15,7 +16,7 @@ use rust_mqtt::{
     utils::rng_generator::CountingRng,
 };
 
-use crate::TwaiOutbox;
+use crate::{dns::DnsBuilder, TwaiOutbox};
 
 #[embassy_executor::task]
 pub async fn mqtt_handler(
@@ -46,15 +47,11 @@ pub async fn mqtt_handler(
         Timer::after(Duration::from_millis(1_000)).await;
 
         let mut socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
-
         socket.set_timeout(Some(embassy_time::Duration::from_secs(10)));
-        let broker_ip = Ipv4Address::new(103, 231, 190, 6);
-        println!("Using hardcoded IP: {:?}", broker_ip);
-        // TODO: perform a DNS query
-
-        let remote_endpoint = embassy_net::IpEndpoint {
-            addr: embassy_net::IpAddress::Ipv4(broker_ip),
-            port: 8883,
+        let remote_endpoint = if let Ok(endpoint) = dns_query(stack).await {
+            endpoint
+        } else {
+            continue;
         };
         println!("connecting...");
         let connection = socket.connect(remote_endpoint).await;
@@ -145,4 +142,42 @@ pub async fn mqtt_handler(
             Timer::after(Duration::from_millis(10)).await;
         }
     }
+}
+
+pub async fn dns_query(
+    stack: &'static Stack<WifiDevice<'static, WifiStaDevice>>,
+) -> Result<embassy_net::IpEndpoint, ()> {
+    let mut rx_buffer = [0; 4096];
+    let mut tx_buffer = [0; 4096];
+    let mut socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
+    socket.set_timeout(Some(embassy_time::Duration::from_secs(10)));
+    let mut buffer = [0; 512];
+    let dns_ip = Ipv4Address::new(8, 8, 8, 8);
+    let remote_endpoint = embassy_net::IpEndpoint {
+        addr: embassy_net::IpAddress::Ipv4(dns_ip),
+        port: 53,
+    };
+    socket.connect(remote_endpoint).await.unwrap();
+    let dns_builder = DnsBuilder::build("broker.bluleap.ai");
+    socket.write(&dns_builder.query_data()).await.unwrap();
+
+    let size = socket.read(&mut buffer).await.unwrap();
+    let broker_ip = if size > 2 {
+        if let Ok(ips) = DnsBuilder::parse_dns_response(&buffer[2..size]) {
+            info!("broker IP: {}.{}.{}.{}", ips[0], ips[1], ips[2], ips[3]);
+            ips
+        } else {
+            return Err(());
+        }
+    } else {
+        return Err(());
+    };
+
+    let broker_ipv4 = Ipv4Address::new(broker_ip[0], broker_ip[1], broker_ip[2], broker_ip[3]);
+
+    let remote_endpoint = embassy_net::IpEndpoint {
+        addr: embassy_net::IpAddress::Ipv4(broker_ipv4),
+        port: 8883,
+    };
+    Ok(remote_endpoint)
 }
