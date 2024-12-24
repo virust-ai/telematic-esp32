@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+use atat::{atat_derive::AtatUrc, ResponseSlot, UrcChannel};
 use embassy_executor::Spawner;
 use embassy_net::{Stack, StackResources};
 use embassy_time::Timer;
@@ -11,6 +12,7 @@ use esp_hal::{
     rtc_cntl::{Rtc, RwdtStage},
     timer::timg::TimerGroup,
     twai::{self, TwaiMode},
+    uart::Uart,
 };
 
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
@@ -29,6 +31,12 @@ macro_rules! mk_static {
     }};
 }
 
+#[derive(Clone, AtatUrc)]
+pub enum Urc {
+    #[at_urc("+UMWI")]
+    MessageWaitingIndication(quectel::common::general::urc::MessageWaitingIndication),
+}
+
 #[derive(Debug)]
 #[allow(dead_code)]
 struct CanFrame {
@@ -39,9 +47,13 @@ struct CanFrame {
 
 type TwaiOutbox = Channel<NoopRawMutex, CanFrame, 16>;
 
+mod dns;
+mod quectel;
 mod tasks;
 use static_cell::StaticCell;
-use tasks::{can_receiver, connection, mqtt_handler, net_task};
+use tasks::{
+    can_receiver, connection, mqtt_handler, net_task, quectel_rx_handler, quectel_tx_handler,
+};
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) -> ! {
@@ -84,13 +96,37 @@ async fn main(spawner: Spawner) -> ! {
         )
     );
 
-    let tx_pin = peripherals.GPIO1;
-    let rx_pin = peripherals.GPIO10;
+    let uart_tx_pin = peripherals.GPIO23;
+    let uart_rx_pin = peripherals.GPIO15;
+
+    let uart0 = Uart::new(peripherals.UART0, uart_rx_pin, uart_tx_pin)
+        .unwrap()
+        .into_async();
+    let (uart_rx, uart_tx) = uart0.split();
+    static RES_SLOT: ResponseSlot<1024> = ResponseSlot::new();
+    static URC_CHANNEL: UrcChannel<quectel::common::Urc, 128, 3> = UrcChannel::new();
+    static INGRESS_BUF: StaticCell<[u8; 1024]> = StaticCell::new();
+    let ingress = atat::Ingress::new(
+        atat::AtDigester::<quectel::common::Urc>::default(),
+        INGRESS_BUF.init([0; 1024]),
+        &RES_SLOT,
+        &URC_CHANNEL,
+    );
+    static BUF: StaticCell<[u8; 1024]> = StaticCell::new();
+    let client = atat::asynch::Client::new(
+        uart_tx,
+        &RES_SLOT,
+        BUF.init([0; 1024]),
+        atat::Config::default(),
+    );
+
+    let can_tx_pin = peripherals.GPIO1;
+    let can_rx_pin = peripherals.GPIO10;
     const CAN_BAUDRATE: twai::BaudRate = twai::BaudRate::B250K;
     let mut twai_config = twai::TwaiConfiguration::new(
         peripherals.TWAI0,
-        rx_pin,
-        tx_pin,
+        can_rx_pin,
+        can_tx_pin,
         CAN_BAUDRATE,
         TwaiMode::Normal,
     )
@@ -113,6 +149,8 @@ async fn main(spawner: Spawner) -> ! {
     spawner.spawn(connection(controller)).ok();
     spawner.spawn(net_task(stack)).ok();
     spawner.spawn(mqtt_handler(stack, trng, channel)).ok();
+    spawner.spawn(quectel_rx_handler(ingress, uart_rx)).ok();
+    spawner.spawn(quectel_tx_handler(client)).ok();
     loop {
         Timer::after_secs(2).await;
         rtc.rwdt.feed();
