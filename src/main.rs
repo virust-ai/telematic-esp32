@@ -7,6 +7,7 @@ use embassy_net::{Stack, StackResources};
 use embassy_time::Timer;
 use esp_backtrace as _;
 use esp_hal::{
+    gpio::Output,
     prelude::*,
     rng::Trng,
     rtc_cntl::{Rtc, RwdtStage},
@@ -98,6 +99,8 @@ async fn main(spawner: Spawner) -> ! {
 
     let uart_tx_pin = peripherals.GPIO23;
     let uart_rx_pin = peripherals.GPIO15;
+    let quectel_pen_pin = Output::new(peripherals.GPIO21, esp_hal::gpio::Level::High);
+    let quectel_dtr_pin = Output::new(peripherals.GPIO22, esp_hal::gpio::Level::High);
 
     let uart0 = Uart::new(peripherals.UART0, uart_rx_pin, uart_tx_pin)
         .unwrap()
@@ -150,7 +153,9 @@ async fn main(spawner: Spawner) -> ! {
     spawner.spawn(net_task(stack)).ok();
     spawner.spawn(mqtt_handler(stack, trng, channel)).ok();
     spawner.spawn(quectel_rx_handler(ingress, uart_rx)).ok();
-    spawner.spawn(quectel_tx_handler(client)).ok();
+    spawner
+        .spawn(quectel_tx_handler(client, quectel_pen_pin, quectel_dtr_pin))
+        .ok();
     loop {
         Timer::after_secs(2).await;
         rtc.rwdt.feed();
