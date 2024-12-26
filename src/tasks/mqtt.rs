@@ -1,4 +1,7 @@
-use embassy_net::{tcp::TcpSocket, Ipv4Address, Stack};
+use embassy_net::{
+    tcp::{ConnectError, TcpSocket},
+    Ipv4Address, Stack,
+};
 use embassy_time::{Duration, Timer};
 use embedded_tls::{
     Aes128GcmSha256, Certificate, TlsConfig, TlsConnection, TlsContext, UnsecureProvider,
@@ -146,7 +149,7 @@ pub async fn mqtt_handler(
 
 pub async fn dns_query(
     stack: &'static Stack<WifiDevice<'static, WifiStaDevice>>,
-) -> Result<embassy_net::IpEndpoint, ()> {
+) -> Result<embassy_net::IpEndpoint, ConnectError> {
     let mut rx_buffer = [0; 4096];
     let mut tx_buffer = [0; 4096];
     let mut socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
@@ -157,7 +160,7 @@ pub async fn dns_query(
         addr: embassy_net::IpAddress::Ipv4(dns_ip),
         port: 53,
     };
-    socket.connect(remote_endpoint).await.unwrap();
+    socket.connect(remote_endpoint).await?;
     let dns_builder = DnsBuilder::build("broker.bluleap.ai");
     socket.write(&dns_builder.query_data()).await.unwrap();
 
@@ -167,10 +170,10 @@ pub async fn dns_query(
             info!("broker IP: {}.{}.{}.{}", ips[0], ips[1], ips[2], ips[3]);
             ips
         } else {
-            return Err(());
+            return Err(ConnectError::NoRoute);
         }
     } else {
-        return Err(());
+        return Err(ConnectError::NoRoute);
     };
 
     let broker_ipv4 = Ipv4Address::new(broker_ip[0], broker_ip[1], broker_ip[2], broker_ip[3]);
