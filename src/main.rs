@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use atat::{atat_derive::AtatUrc, ResponseSlot, UrcChannel};
+use atat::{ResponseSlot, UrcChannel};
 use embassy_executor::Spawner;
 use embassy_net::{Stack, StackResources};
 use embassy_time::Timer;
@@ -30,12 +30,6 @@ macro_rules! mk_static {
         let x = STATIC_CELL.uninit().write(($val));
         x
     }};
-}
-
-#[derive(Clone, AtatUrc)]
-pub enum Urc {
-    #[at_urc("+UMWI")]
-    MessageWaitingIndication(at_command::common::general::urc::MessageWaitingIndication),
 }
 
 #[derive(Debug)]

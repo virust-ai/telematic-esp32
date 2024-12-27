@@ -10,6 +10,8 @@ use esp_hal::{
 use log::{info, warn};
 
 use crate::at_command;
+use at_command::common::general::{*, responses::*};
+
 
 #[embassy_executor::task]
 pub async fn quectel_tx_handler(
@@ -23,27 +25,27 @@ pub async fn quectel_tx_handler(
         match state {
             0 => {
                 client
-                    .send(&at_command::common::general::DisableEchoMode)
+                    .send(&DisableEchoMode)
                     .await
                     .unwrap();
             }
             1 => {
-                let res: at_command::common::general::responses::ManufacturerId = client
-                    .send(&at_command::common::general::GetManufacturerId)
+                let res: ManufacturerId = client
+                    .send(&GetManufacturerId)
                     .await
                     .unwrap();
                 info!("\t {:?}", res);
             }
             2 => {
-                let res: at_command::common::general::responses::ModelId = client
-                    .send(&at_command::common::general::GetModelId)
+                let res: ModelId = client
+                    .send(&GetModelId)
                     .await
                     .unwrap();
                 info!("\t {:?}", res);
             }
             3 => {
-                let res: at_command::common::general::responses::SoftwareVersion = client
-                    .send(&at_command::common::general::GetSoftwareVersion)
+                let res: SoftwareVersion = client
+                    .send(&GetSoftwareVersion)
                     .await
                     .unwrap();
                 info!("\t {:?}", res);
@@ -56,41 +58,41 @@ pub async fn quectel_tx_handler(
                 // info!("\t {:?}", res);
             }
             5 => {
-                let res: at_command::common::general::responses::SimCardStatus = client
-                    .send(&at_command::common::general::GetSimCardStatus)
+                let res: SimCardStatus = client
+                    .send(&GetSimCardStatus)
                     .await
                     .unwrap();
                 info!("\t {:?}", res);
             }
             6 => {
-                let res: at_command::common::general::responses::NetworkSignalQuality = client
-                    .send(&at_command::common::general::GetNetworkSignalQuality)
+                let res: NetworkSignalQuality = client
+                    .send(&GetNetworkSignalQuality)
                     .await
                     .unwrap();
                 info!("\t {:?}", res);
             }
             7 => {
-                let res: at_command::common::general::responses::NetworkOperatorName = client
-                    .send(&at_command::common::general::GetNetworkOperatorName)
+                let res: NetworkOperatorName = client
+                    .send(&GetNetworkOperatorName)
                     .await
                     .unwrap();
                 info!("\t {:?}", res);
             }
             8 => {
                 client
-                    .send(&at_command::common::general::EnableGpsFunc)
+                    .send(&EnableGpsFunc)
                     .await
                     .unwrap();
             }
             9 => {
                 client
-                    .send(&at_command::common::general::EnableAssistGpsFunc)
+                    .send(&EnableAssistGpsFunc)
                     .await
                     .unwrap();
             }
             _ => {
                 match client
-                    .send(&at_command::common::general::RetrieveGpsRmc)
+                    .send(&RetrieveGpsRmc)
                     .await
                 {
                     Ok(res) => {
