@@ -10,12 +10,12 @@ use esp_hal::{
     gpio::Output,
     prelude::*,
     rng::Trng,
-    rtc_cntl::{Rtc, RwdtStage},
     timer::timg::TimerGroup,
     twai::{self, TwaiMode},
     uart::Uart,
 };
-
+#[cfg(feature = "wdg")]
+use esp_hal::rtc_cntl::{Rtc, RwdtStage};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
 use esp_wifi::{
     init,
@@ -79,10 +79,13 @@ async fn main(spawner: Spawner) -> ! {
     let (wifi_interface, controller) =
         esp_wifi::wifi::new_with_mode(init, wifi, WifiStaDevice).unwrap();
     let config = embassy_net::Config::dhcpv4(Default::default());
-    let mut rtc = Rtc::new(peripherals.LPWR);
-
-    rtc.rwdt.enable();
-    rtc.rwdt.set_timeout(RwdtStage::Stage0, 5.secs());
+    #[cfg(feature = "wdg")]
+    let mut rtc = { 
+        let mut rtc = Rtc::new(peripherals.LPWR);
+        rtc.rwdt.enable();
+        rtc.rwdt.set_timeout(RwdtStage::Stage0, 5.secs());
+        rtc
+    };
 
     let seed = 1234;
 
@@ -158,6 +161,7 @@ async fn main(spawner: Spawner) -> ! {
         .ok();
     loop {
         Timer::after_secs(2).await;
+        #[cfg(feature = "wdg")]
         rtc.rwdt.feed();
     }
 }
