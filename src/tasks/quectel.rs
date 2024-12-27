@@ -7,9 +7,9 @@ use esp_hal::{
     uart::{UartRx, UartTx},
     Async,
 };
-use log::{error, info};
+use log::{info, warn};
 
-use crate::quectel;
+use crate::at_command;
 
 #[embassy_executor::task]
 pub async fn quectel_tx_handler(
@@ -23,27 +23,27 @@ pub async fn quectel_tx_handler(
         match state {
             0 => {
                 client
-                    .send(&quectel::common::general::DisableEchoMode)
+                    .send(&at_command::common::general::DisableEchoMode)
                     .await
                     .unwrap();
             }
             1 => {
-                let res: quectel::common::general::responses::ManufacturerId = client
-                    .send(&quectel::common::general::GetManufacturerId)
+                let res: at_command::common::general::responses::ManufacturerId = client
+                    .send(&at_command::common::general::GetManufacturerId)
                     .await
                     .unwrap();
                 info!("\t {:?}", res);
             }
             2 => {
-                let res: quectel::common::general::responses::ModelId = client
-                    .send(&quectel::common::general::GetModelId)
+                let res: at_command::common::general::responses::ModelId = client
+                    .send(&at_command::common::general::GetModelId)
                     .await
                     .unwrap();
                 info!("\t {:?}", res);
             }
             3 => {
-                let res: quectel::common::general::responses::SoftwareVersion = client
-                    .send(&quectel::common::general::GetSoftwareVersion)
+                let res: at_command::common::general::responses::SoftwareVersion = client
+                    .send(&at_command::common::general::GetSoftwareVersion)
                     .await
                     .unwrap();
                 info!("\t {:?}", res);
@@ -56,48 +56,48 @@ pub async fn quectel_tx_handler(
                 // info!("\t {:?}", res);
             }
             5 => {
-                let res: quectel::common::general::responses::SimCardStatus = client
-                    .send(&quectel::common::general::GetSimCardStatus)
+                let res: at_command::common::general::responses::SimCardStatus = client
+                    .send(&at_command::common::general::GetSimCardStatus)
                     .await
                     .unwrap();
                 info!("\t {:?}", res);
             }
             6 => {
-                let res: quectel::common::general::responses::NetworkSignalQuality = client
-                    .send(&quectel::common::general::GetNetworkSignalQuality)
+                let res: at_command::common::general::responses::NetworkSignalQuality = client
+                    .send(&at_command::common::general::GetNetworkSignalQuality)
                     .await
                     .unwrap();
                 info!("\t {:?}", res);
             }
             7 => {
-                let res: quectel::common::general::responses::NetworkOperatorName = client
-                    .send(&quectel::common::general::GetNetworkOperatorName)
+                let res: at_command::common::general::responses::NetworkOperatorName = client
+                    .send(&at_command::common::general::GetNetworkOperatorName)
                     .await
                     .unwrap();
                 info!("\t {:?}", res);
             }
             8 => {
                 client
-                    .send(&quectel::common::general::EnableGpsFunc)
+                    .send(&at_command::common::general::EnableGpsFunc)
                     .await
                     .unwrap();
             }
             9 => {
                 client
-                    .send(&quectel::common::general::EnableAssistGpsFunc)
+                    .send(&at_command::common::general::EnableAssistGpsFunc)
                     .await
                     .unwrap();
             }
             _ => {
                 match client
-                    .send(&quectel::common::general::RetrieveGpsData)
+                    .send(&at_command::common::general::RetrieveGpsRmc)
                     .await
                 {
                     Ok(res) => {
                         info!("\t {:?}", res);
                     }
                     Err(e) => {
-                        error!("\t {:?}", e);
+                        warn!("\t Failed to get GPS data: {:?}", e);
                     }
                 }
             }
@@ -112,8 +112,8 @@ pub async fn quectel_tx_handler(
 pub async fn quectel_rx_handler(
     mut ingress: Ingress<
         'static,
-        DefaultDigester<quectel::common::Urc>,
-        quectel::common::Urc,
+        DefaultDigester<at_command::common::Urc>,
+        at_command::common::Urc,
         1024,
         128,
         3,

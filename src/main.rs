@@ -35,7 +35,7 @@ macro_rules! mk_static {
 #[derive(Clone, AtatUrc)]
 pub enum Urc {
     #[at_urc("+UMWI")]
-    MessageWaitingIndication(quectel::common::general::urc::MessageWaitingIndication),
+    MessageWaitingIndication(at_command::common::general::urc::MessageWaitingIndication),
 }
 
 #[derive(Debug)]
@@ -49,7 +49,7 @@ struct CanFrame {
 type TwaiOutbox = Channel<NoopRawMutex, CanFrame, 16>;
 
 mod dns;
-mod quectel;
+mod at_command;
 mod tasks;
 use static_cell::StaticCell;
 use tasks::{
@@ -110,10 +110,10 @@ async fn main(spawner: Spawner) -> ! {
         .into_async();
     let (uart_rx, uart_tx) = uart0.split();
     static RES_SLOT: ResponseSlot<1024> = ResponseSlot::new();
-    static URC_CHANNEL: UrcChannel<quectel::common::Urc, 128, 3> = UrcChannel::new();
+    static URC_CHANNEL: UrcChannel<at_command::common::Urc, 128, 3> = UrcChannel::new();
     static INGRESS_BUF: StaticCell<[u8; 1024]> = StaticCell::new();
     let ingress = atat::Ingress::new(
-        atat::AtDigester::<quectel::common::Urc>::default(),
+        atat::AtDigester::<at_command::common::Urc>::default(),
         INGRESS_BUF.init([0; 1024]),
         &RES_SLOT,
         &URC_CHANNEL,

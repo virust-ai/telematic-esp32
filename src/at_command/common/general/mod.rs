@@ -2,11 +2,7 @@
 pub mod responses;
 pub mod urc;
 
-use core::str::FromStr;
-
-use atat::{atat_derive::AtatCmd, AtatCmd};
-use heapless::String;
-use log::info;
+use atat::atat_derive::AtatCmd;
 use responses::*;
 
 use super::NoResponse;
@@ -105,31 +101,7 @@ pub struct EnableGnssFunc;
 /// GPS Position Data +QGPSGNMEA="RMC"
 ///
 /// Retrieve GPS Position Data
-#[derive(Clone)]
-pub struct RetrieveGpsData;
+#[derive(Clone, AtatCmd)]
+#[at_cmd("+QGPSGNMEA=\"RMC\"", GpsData)]
+pub struct RetrieveGpsRmc;
 
-impl AtatCmd for RetrieveGpsData {
-    type Response = GpsData;
-
-    const MAX_LEN: usize = 1000;
-
-    fn write(&self, buf: &mut [u8]) -> usize {
-        info!("write AT+QGPSGNMEA=\"RMC\"");
-        let cmd = b"AT+QGPSGNMEA=\"RMC\"\r\n";
-        let len = cmd.len();
-        buf[..len].copy_from_slice(cmd);
-        len
-    }
-
-    fn parse(
-        &self,
-        resp: Result<&[u8], atat::InternalError>,
-    ) -> Result<Self::Response, atat::Error> {
-        if let Ok(gps) = resp {
-            let str = core::str::from_utf8(gps).unwrap();
-            let a: String<100> = String::from_str(str).unwrap();
-            info!("{a}");
-        }
-        Ok(GpsData::default())
-    }
-}

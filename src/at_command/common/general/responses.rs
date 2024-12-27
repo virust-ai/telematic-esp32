@@ -77,29 +77,29 @@ pub struct NetworkOperatorName {
 #[derive(Default, Clone, Debug, AtatResp)]
 pub struct GpsData {
     #[at_arg(position = 0)]
-    pub rmc: atat::heapless_bytes::Bytes<6>,
+    pub gsm_type: atat::heapless_bytes::Bytes<6>,
     #[at_arg(position = 1)]
-    pub utc: Option<f64>,
+    pub utc: atat::heapless_bytes::Bytes<10>,
     #[at_arg(position = 2)]
-    pub status: Option<char>,
+    pub status: char,
     #[at_arg(position = 3)]
-    pub latitude: Option<f64>,
+    pub latitude: f64,
     #[at_arg(position = 4)]
-    pub latitude_direction: Option<char>,
+    pub latitude_direction: char,
     #[at_arg(position = 5)]
-    pub longtitude: Option<f64>,
+    pub longtitude: f64,
     #[at_arg(position = 6)]
-    pub longtitude_direction: Option<char>,
+    pub longtitude_direction: char,
     #[at_arg(position = 7)]
-    pub spkm: Option<f64>,
+    pub spkm: f64,
     #[at_arg(position = 8)]
-    pub heading: Option<f64>,
+    pub heading: f64,
     #[at_arg(position = 9)]
-    pub date: Option<u64>,
+    pub date: atat::heapless_bytes::Bytes<6>,
     #[at_arg(position = 10)]
-    pub magnetic: Option<f64>,
+    pub magnetic: atat::heapless_bytes::Bytes<5>,
     #[at_arg(position = 11)]
-    pub magnetic_direction: Option<char>,
+    pub magnetic_direction: char,
     #[at_arg(position = 12)]
-    pub checksum: Option<u32>,
+    pub checksum: atat::heapless_bytes::Bytes<4>,
 }
