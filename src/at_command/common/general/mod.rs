@@ -2,7 +2,7 @@
 pub mod responses;
 pub mod urc;
 
-use atat::atat_derive::AtatCmd;
+use atat::{atat_derive::AtatCmd, AtatCmd};
 use responses::*;
 
 use super::NoResponse;
@@ -104,4 +104,29 @@ pub struct EnableGnssFunc;
 #[derive(Clone, AtatCmd)]
 #[at_cmd("+QGPSGNMEA=\"RMC\"", GpsData)]
 pub struct RetrieveGpsRmc;
+
+/// Send raw data to UART with out any AT command format
+///
+/// Send raw data to UART
+#[derive(Clone)]
+pub struct SendRawData {
+    pub raw_data: heapless::Vec<u8, 128>,
+    pub len: usize
+}
+
+impl AtatCmd for SendRawData {
+    type Response = NoResponse;
+
+    const MAX_LEN: usize = 1024;
+    const EXPECTS_RESPONSE_CODE: bool = false;
+
+    fn write(&self, buf: &mut [u8]) -> usize {
+        buf[..self.len].copy_from_slice(&self.raw_data);
+        self.len
+    }
+
+    fn parse(&self, _resp: Result<&[u8], atat::InternalError>) -> Result<Self::Response, atat::Error> {
+        Ok(NoResponse)
+    }
+}
 
