@@ -1,9 +1,11 @@
-use embassy_net::{tcp::{State, TcpSocket}, Stack};
+use embassy_net::{tcp::{State, TcpSocket}, IpEndpoint, Stack};
+use embassy_time::Instant;
 use embedded_io::{Read, Write};
 use esp_println::println;
 use esp_wifi::wifi::{
     WifiDevice, WifiStaDevice, WifiState
 };
+use log::{error, info, warn};
 use mqttrust::{
     encoding::v4::{encode_slice, Connect, Protocol},
     MqttError,
@@ -11,159 +13,138 @@ use mqttrust::{
     Publish,
     QoS,
 };
-use smoltcp::wire::IpAddress;
 
 pub struct MqttClient<'a> {
     client_id: &'a str,
-    stack: &'a Stack<WifiDevice<'a, WifiStaDevice>>,
+    socket: TcpSocket<'a>,
     connection_state: bool,
     recv_buffer: [u8; 512],
     recv_index: usize,
     keep_alive_secs: Option<u16>,
     last_sent_millis: u64,
-    current_millis_fn: fn() -> u64,
 }
 
 impl<'a> MqttClient<'a> {
     pub fn new(
         client_id: &'a str,
-        stack: &'a Stack<WifiDevice<'a, WifiStaDevice>>,
-        current_millis_fn: fn() -> u64,
+        socket: TcpSocket<'a>,
     ) -> Self {
         MqttClient {
             client_id,
-            stack,
+            socket,
             connection_state: false,
             recv_buffer: [0u8; 512],
             recv_index: 0,
             keep_alive_secs: None,
             last_sent_millis: 0,
-            current_millis_fn,
         }
     }
 
-    pub fn connect(
+    pub async fn connect(
         &mut self,
-        broker_addr: IpAddress,
-        broker_port: u16,
+        end_point: IpEndpoint,
         keep_alive_secs: u16,
         username: Option<&'a str>,
         password: Option<&'a [u8]>,
     ) -> Result<(), MqttError> {
-        // self.keep_alive_secs = Some(keep_alive_secs);
+        self.keep_alive_secs = Some(keep_alive_secs);
 
-        // if self.socket.state() != State::Closed {
-        //     self.disconnect();
-        // }
+        if self.socket.state() != State::Closed {
+            self.disconnect();
+        }
+        if let Err(e) = self.socket.connect(end_point).await {
+            error!("Failed to connect to {:?}: {:?}", end_point, e);
+            return Err(MqttError::Overflow)
+        }
 
-        // match esp_wifi::wifi::get_wifi_state() {
-        //     WifiState::StaConnected => {},
-        //     _ => {
-        //         self.connection_state = false;
-        //         return Err(MqttError::Overflow)
-        //     },
-        // }
+        let conn_pkt = Packet::Connect(Connect {
+            protocol: Protocol::MQTT311,
+            keep_alive: keep_alive_secs,
+            client_id: self.client_id,
+            clean_session: true,
+            last_will: None,
+            username,
+            password,
+        });
 
-        // self.socket.open(broker_addr, broker_port).unwrap();
-
-        // let conn_pkt = Packet::Connect(Connect {
-        //     protocol: Protocol::MQTT311,
-        //     keep_alive: keep_alive_secs,
-        //     client_id: self.client_id,
-        //     clean_session: true,
-        //     last_will: None,
-        //     username,
-        //     password,
-        // });
-
-        // self.send(conn_pkt)?;
-
-        // match self.receive() {
-        //     Ok(()) => {
-        //         self.last_sent_millis = (self.current_millis_fn)();
-        //         self.connection_state = true;
-        //         Ok(())
-        //     },
-        //     Err(e) => Err(e),
-        // }
+        self.last_sent_millis = self.current_millis();
+        self.connection_state = true;
+        self.send(conn_pkt).await?;
         Ok(())
     }
 
     pub fn disconnect(&mut self) {
-        // self.socket.disconnect();
-        // self.connection_state = false;
+        self.socket.close();
+        self.connection_state = false;
     }
 
-    pub fn publish(&mut self,
+    pub async fn publish(&mut self,
         topic_name: &str,
         payload: &[u8],
         qos: QoS
     ) -> Result<(), MqttError> {
-        // let pub_pkt = Packet::Publish(Publish {
-        //     dup: false,
-        //     qos,
-        //     pid: None,
-        //     retain: false,
-        //     topic_name,
-        //     payload,
-        // });
+        let pub_pkt = Packet::Publish(Publish {
+            dup: false,
+            qos,
+            pid: None,
+            retain: false,
+            topic_name,
+            payload,
+        });
 
-        // match esp_wifi::wifi::get_wifi_state() {
-        //     WifiState::StaConnected => {},
-        //     _ => {
-        //         self.connection_state = false;
-        //         return Err(MqttError::Overflow)
-        //     },
-        // }
-
-        // self.send(pub_pkt)?;
-        // self.last_sent_millis = (self.current_millis_fn)();
+        self.send(pub_pkt).await?;
+        self.last_sent_millis = self.current_millis();
         Ok(())
     }
 
-    pub fn poll(&mut self) {
+    pub async fn poll(&mut self) {
 
-        // if !self.socket.is_connected() {
-        //     self.connection_state = false;
-        //     return
-        // }
+        if self.socket.state() == State::Closed {
+            self.connection_state = false;
+            warn!("socket state is closed");
+            return
+        }
 
-        // if let Some(keep_alive_secs) = self.keep_alive_secs {
-        //     if (self.last_sent_millis + (keep_alive_secs * 1000) as u64) < (self.current_millis_fn)() {
-        //         let ping_err = self.send(Packet::Pingreq);
-        //         match ping_err {
-        //             Ok(()) => {
-        //                 println!("Ping success");
-        //                 self.last_sent_millis = (self.current_millis_fn)();
-        //             },
-        //             Err(_) => println!("Ping failed"),
-        //         }
-        //         return
-        //     }
-        // }
-        // self.socket.work();
+        if let Some(keep_alive_secs) = self.keep_alive_secs {
+            if (self.last_sent_millis + (keep_alive_secs * 1000) as u64) < self.current_millis() {
+                let ping_err = self.send(Packet::Pingreq).await;
+                match ping_err {
+                    Ok(()) => {
+                        info!("Ping success");
+                        self.last_sent_millis = self.current_millis();
+                    },
+                    Err(_) => warn!("Ping failed"),
+                }
+                return
+            }
+        }
     }
 
-    fn send(&mut self, packet: Packet<'_>) -> Result<(), MqttError> {
-        // let mut buffer = [0u8; 1024];
-        // let len = encode_slice(&packet, &mut buffer).unwrap();
-        // match self.socket.write(&buffer[..len]) {
-        //     Ok(_) => Ok(()),
-        //     Err(_) => Err(MqttError::Overflow),
-        // }
-        Ok(())
+    async fn send(&mut self, packet: Packet<'_>) -> Result<(), MqttError> {
+        let mut buffer = [0u8; 4096];
+        let len = encode_slice(&packet, &mut buffer).unwrap();
+        match self.socket.write(&buffer[..len]).await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                error!("Failed to send MQTT: {:?}", e);
+                Err(MqttError::Overflow)
+            }
+        }
     }
 
-    fn receive(&mut self) -> Result<(), MqttError> {
-        // loop {
-        //     match self.socket.read(&mut self.recv_buffer) {
-        //         Ok(len) => {
-        //             self.recv_index = len;
-        //             return Ok(());
-        //         },
-        //         Err(_) => return Err(MqttError::Overflow),
-        //     }
-        // }
-        Ok(())
+    async fn receive(&mut self) -> Result<(), MqttError> {
+        loop {
+            match self.socket.read(&mut self.recv_buffer).await {
+                Ok(len) => {
+                    self.recv_index = len;
+                    return Ok(());
+                },
+                Err(_) => return Err(MqttError::Overflow),
+            }
+        }
+    }
+
+    fn current_millis(&self) -> u64 {
+        Instant::now().as_millis()
     }
 }

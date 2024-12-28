@@ -23,7 +23,6 @@ esp-println = { version = "0.12.0", features = ["esp32c6", "log"] }
 esp-wifi = { version = "0.11.0", features = ["esp32c6", "wifi"] }
 embedded-can        = "0.4.1"
 log = { version = "0.4.20" }
-rust-mqtt = { version = "0.3.0", default-features = false }
 embedded-tls = { git = "https://github.com/drogue-iot/embedded-tls.git", default-features = false }
 atat = {git = "https://github.com/TuEmb/atat.git", rev = "b9b8278d8ce2c71a15a1232ba763087cfb76807f"}
 static_cell         = { version = "2.1.0", features = ["nightly"] }

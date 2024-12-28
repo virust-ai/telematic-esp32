@@ -26,6 +26,7 @@ pub async fn can_receiver(
                         data[0..frame.data().len()].copy_from_slice(frame.data());
 
                         if id.as_raw() == MQTT_CAN_PACKET {
+                            info!("Receive MQTT CAN packet");
                             // Try to send can frame to wifi task without blocking
                             let _ = channel.try_send(CanFrame {
                                 id: id.as_raw(),
