@@ -81,6 +81,8 @@ pub async fn mqtt_handler(
                 UnsecureProvider::new::<Aes128GcmSha256>(&mut *trng),
             ))
             .await;
+
+        // mqttrust_core::Client::new("a", "123");
         let mut config = ClientConfig::new(MqttVersion::MQTTv5, CountingRng(20000));
         config.add_max_subscribe_qos(rust_mqtt::packet::v5::publish_packet::QualityOfService::QoS1);
         config.add_username("bike_test");
