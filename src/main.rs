@@ -4,8 +4,11 @@
 use atat::{ResponseSlot, UrcChannel};
 use embassy_executor::Spawner;
 use embassy_net::{Stack, StackResources};
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
 use embassy_time::Timer;
 use esp_backtrace as _;
+#[cfg(feature = "wdg")]
+use esp_hal::rtc_cntl::{Rtc, RwdtStage};
 use esp_hal::{
     gpio::Output,
     prelude::*,
@@ -14,9 +17,6 @@ use esp_hal::{
     twai::{self, TwaiMode},
     uart::Uart,
 };
-#[cfg(feature = "wdg")]
-use esp_hal::rtc_cntl::{Rtc, RwdtStage};
-use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
 use esp_wifi::{
     init,
     wifi::{WifiDevice, WifiStaDevice},
@@ -42,8 +42,8 @@ struct CanFrame {
 
 type TwaiOutbox = Channel<NoopRawMutex, CanFrame, 16>;
 
-mod dns;
 mod at_command;
+mod dns;
 mod tasks;
 use static_cell::StaticCell;
 use tasks::{
@@ -74,7 +74,7 @@ async fn main(spawner: Spawner) -> ! {
         esp_wifi::wifi::new_with_mode(init, wifi, WifiStaDevice).unwrap();
     let config = embassy_net::Config::dhcpv4(Default::default());
     #[cfg(feature = "wdg")]
-    let mut rtc = { 
+    let mut rtc = {
         let mut rtc = Rtc::new(peripherals.LPWR);
         rtc.rwdt.enable();
         rtc.rwdt.set_timeout(RwdtStage::Stage0, 5.secs());

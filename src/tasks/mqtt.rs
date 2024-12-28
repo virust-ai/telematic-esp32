@@ -1,4 +1,7 @@
-use embassy_net::{tcp::{ConnectError, TcpSocket}, Ipv4Address, Stack};
+use embassy_net::{
+    tcp::{ConnectError, TcpSocket},
+    Ipv4Address, Stack,
+};
 use embassy_time::{Duration, Timer};
 use embedded_tls::{
     Aes128GcmSha256, Certificate, TlsConfig, TlsConnection, TlsContext, UnsecureProvider,

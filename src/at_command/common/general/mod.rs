@@ -111,7 +111,7 @@ pub struct RetrieveGpsRmc;
 #[derive(Clone)]
 pub struct SendRawData {
     pub raw_data: heapless::Vec<u8, 128>,
-    pub len: usize
+    pub len: usize,
 }
 
 impl AtatCmd for SendRawData {
@@ -125,8 +125,10 @@ impl AtatCmd for SendRawData {
         self.len
     }
 
-    fn parse(&self, _resp: Result<&[u8], atat::InternalError>) -> Result<Self::Response, atat::Error> {
+    fn parse(
+        &self,
+        _resp: Result<&[u8], atat::InternalError>,
+    ) -> Result<Self::Response, atat::Error> {
         Ok(NoResponse)
     }
 }
-

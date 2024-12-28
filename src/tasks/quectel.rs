@@ -7,11 +7,10 @@ use esp_hal::{
     uart::{UartRx, UartTx},
     Async,
 };
-use log::{info, warn};
+use log::{error, info, warn};
 
 use crate::at_command;
-use at_command::common::general::{*, responses::*};
-
+use at_command::common::general::*;
 
 #[embassy_executor::task]
 pub async fn quectel_tx_handler(
@@ -24,31 +23,43 @@ pub async fn quectel_tx_handler(
         // These will all timeout after 1 sec, as there is no response
         match state {
             0 => {
-                client
-                    .send(&DisableEchoMode)
-                    .await
-                    .unwrap();
+                info!("Quectel: disable echo mode");
+                if let Err(e) = client.send(&DisableEchoMode).await {
+                    error!("Failed to send AT command: {:?}", e);
+                }
             }
             1 => {
-                let res: ManufacturerId = client
-                    .send(&GetManufacturerId)
-                    .await
-                    .unwrap();
-                info!("\t {:?}", res);
+                info!("Quectel: get ManufacturerId");
+                match client.send(&GetManufacturerId).await {
+                    Ok(res) => {
+                        info!("\t {:?}", res);
+                    }
+                    Err(e) => {
+                        error!("Failed to send AT command: {:?}", e);
+                    }
+                }
             }
             2 => {
-                let res: ModelId = client
-                    .send(&GetModelId)
-                    .await
-                    .unwrap();
-                info!("\t {:?}", res);
+                info!("Quectel: get ModelId");
+                match client.send(&GetModelId).await {
+                    Ok(res) => {
+                        info!("\t {:?}", res);
+                    }
+                    Err(e) => {
+                        error!("Failed to send AT command: {:?}", e);
+                    }
+                }
             }
             3 => {
-                let res: SoftwareVersion = client
-                    .send(&GetSoftwareVersion)
-                    .await
-                    .unwrap();
-                info!("\t {:?}", res);
+                info!("Quectel: get SoftwareVersion");
+                match client.send(&GetSoftwareVersion).await {
+                    Ok(res) => {
+                        info!("\t {:?}", res);
+                    }
+                    Err(e) => {
+                        error!("Failed to send AT command: {:?}", e);
+                    }
+                }
             }
             4 => {
                 // let res: quectel::common::general::responses::CommonResponse = client
@@ -58,43 +69,63 @@ pub async fn quectel_tx_handler(
                 // info!("\t {:?}", res);
             }
             5 => {
-                let res: SimCardStatus = client
-                    .send(&GetSimCardStatus)
-                    .await
-                    .unwrap();
-                info!("\t {:?}", res);
+                info!("Quectel: get SoftwareVersion");
+                match client.send(&GetSimCardStatus).await {
+                    Ok(res) => {
+                        info!("\t {:?}", res);
+                    }
+                    Err(e) => {
+                        error!("Failed to send AT command: {:?}", e);
+                    }
+                }
             }
             6 => {
-                let res: NetworkSignalQuality = client
-                    .send(&GetNetworkSignalQuality)
-                    .await
-                    .unwrap();
-                info!("\t {:?}", res);
+                info!("Quectel: get NetworkSignalQuality");
+                match client.send(&GetNetworkSignalQuality).await {
+                    Ok(res) => {
+                        info!("\t {:?}", res);
+                    }
+                    Err(e) => {
+                        error!("Failed to send AT command: {:?}", e);
+                    }
+                }
             }
             7 => {
-                let res: NetworkOperatorName = client
-                    .send(&GetNetworkOperatorName)
-                    .await
-                    .unwrap();
-                info!("\t {:?}", res);
+                info!("Quectel: get NetworkOperatorName");
+                match client.send(&GetNetworkOperatorName).await {
+                    Ok(res) => {
+                        info!("\t {:?}", res);
+                    }
+                    Err(e) => {
+                        error!("Failed to send AT command: {:?}", e);
+                    }
+                }
             }
             8 => {
-                client
-                    .send(&EnableGpsFunc)
-                    .await
-                    .unwrap();
+                info!("Quectel: enable GPS functionality");
+                match client.send(&EnableGpsFunc).await {
+                    Ok(_) => {
+                        info!("Quectel: enable GPS functionality OK");
+                    }
+                    Err(e) => {
+                        error!("Failed to send AT command: {:?}", e);
+                    }
+                }
             }
             9 => {
-                client
-                    .send(&EnableAssistGpsFunc)
-                    .await
-                    .unwrap();
+                info!("Quectel: enable Assist GPS functionality");
+                match client.send(&EnableAssistGpsFunc).await {
+                    Ok(_) => {
+                        info!("Quectel: enable Assist GPS functionality OK");
+                    }
+                    Err(e) => {
+                        error!("Failed to send AT command: {:?}", e);
+                    }
+                }
             }
             _ => {
-                match client
-                    .send(&RetrieveGpsRmc)
-                    .await
-                {
+                info!("Quectel: retrieve GPS RMC data");
+                match client.send(&RetrieveGpsRmc).await {
                     Ok(res) => {
                         info!("\t {:?}", res);
                     }
