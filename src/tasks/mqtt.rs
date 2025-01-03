@@ -9,7 +9,7 @@ use embedded_tls::{
 use esp_hal::rng::Trng;
 use esp_println::println;
 use esp_wifi::wifi::{WifiDevice, WifiStaDevice};
-use log::info;
+use log::{error, info};
 // use rust_mqtt::{
 //     client::{
 //         client_config::{ClientConfig, MqttVersion},
@@ -49,23 +49,24 @@ pub async fn mqtt_handler(
         Timer::after(Duration::from_millis(1_000)).await;
 
         let mut socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
-        socket.set_timeout(Some(embassy_time::Duration::from_secs(10)));
         let remote_endpoint = if let Ok(endpoint) = dns_query(stack).await {
             endpoint
         } else {
             continue
         };
         let mut mqtt_client = MqttClient::new("bluleap321", socket);
-        mqtt_client.connect(remote_endpoint, 15, None, None).await.unwrap();
+        mqtt_client.connect(remote_endpoint, 60, None, None).await.unwrap();
         loop {
             if let Ok(frame) = channel.try_receive() {
                 use core::fmt::Write;
                 let mut frame_str: heapless::String<80> = heapless::String::new();
                 writeln!(&mut frame_str, "{:?}", frame).unwrap();
-                mqtt_client.publish("can/1", frame_str.as_bytes(), mqttrust::QoS::AtMostOnce).await.unwrap();
+                if let Err(e) = mqtt_client.publish("can/1", frame_str.as_bytes(), mqttrust::QoS::AtMostOnce).await {
+                    error!("Failed to publish MQTT packet: {:?}", e);
+                    break;
+                }
                 info!("MQTT sent OK");
             }
-            mqtt_client.publish("can/1", b"HELLO MQTT3.1.1", mqttrust::QoS::AtMostOnce).await.unwrap();
             mqtt_client.poll().await;
             Timer::after_secs(1).await;
         }
