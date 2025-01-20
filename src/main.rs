@@ -45,6 +45,7 @@ type TwaiOutbox = Channel<NoopRawMutex, CanFrame, 16>;
 mod at_command;
 mod dns;
 mod tasks;
+mod mqtt;
 use static_cell::StaticCell;
 use tasks::{
     can_receiver, connection, mqtt_handler, net_task, quectel_rx_handler, quectel_tx_handler,
