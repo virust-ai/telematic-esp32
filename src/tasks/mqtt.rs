@@ -48,20 +48,20 @@ pub async fn mqtt_handler(
     loop {
         Timer::after(Duration::from_millis(1_000)).await;
 
-        let mut socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
+        let socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
         let remote_endpoint = if let Ok(endpoint) = dns_query(stack).await {
             endpoint
         } else {
             continue
         };
-        let mut mqtt_client = MqttClient::new("bluleap321", socket);
-        mqtt_client.connect(remote_endpoint, 60, None, None).await.unwrap();
+        let mut mqtt_client = MqttClient::new("dc3dfe86-861a-47c5-994f-9ef9e1442882", socket);
+        mqtt_client.connect(remote_endpoint, 60, Some("bike_test"), Some(b"bike_test")).await.unwrap();
         loop {
             if let Ok(frame) = channel.try_receive() {
                 use core::fmt::Write;
                 let mut frame_str: heapless::String<80> = heapless::String::new();
                 writeln!(&mut frame_str, "{:?}", frame).unwrap();
-                if let Err(e) = mqtt_client.publish("can/1", frame_str.as_bytes(), mqttrust::QoS::AtMostOnce).await {
+                if let Err(e) = mqtt_client.publish("channels/dc3dfe86-861a-47c5-994f-9ef9e1442882/messages/can", frame_str.as_bytes(), mqttrust::QoS::AtMostOnce).await {
                     error!("Failed to publish MQTT packet: {:?}", e);
                     break;
                 }
@@ -177,7 +177,7 @@ pub async fn dns_query(
         port: 53,
     };
     socket.connect(remote_endpoint).await?;
-    let dns_builder = DnsBuilder::build("broker.hivemq.com");
+    let dns_builder = DnsBuilder::build("broker.bluleap.ai");
     socket.write(&dns_builder.query_data()).await.unwrap();
 
     let size = socket.read(&mut buffer).await.unwrap();
