@@ -1,17 +1,15 @@
-use embassy_net::{tcp::{State, TcpSocket}, IpEndpoint, Stack};
+use embassy_net::{
+    tcp::{State, TcpSocket},
+    IpEndpoint, Stack,
+};
 use embassy_time::Instant;
 use embedded_io::{Read, Write};
 use esp_println::println;
-use esp_wifi::wifi::{
-    WifiDevice, WifiStaDevice, WifiState
-};
+use esp_wifi::wifi::{WifiDevice, WifiStaDevice, WifiState};
 use log::{error, info, warn};
 use mqttrust::{
     encoding::v4::{encode_slice, Connect, Protocol},
-    MqttError,
-    Packet,
-    Publish,
-    QoS,
+    MqttError, Packet, Publish, QoS,
 };
 
 pub struct MqttClient<'a> {
@@ -25,10 +23,7 @@ pub struct MqttClient<'a> {
 }
 
 impl<'a> MqttClient<'a> {
-    pub fn new(
-        client_id: &'a str,
-        socket: TcpSocket<'a>,
-    ) -> Self {
+    pub fn new(client_id: &'a str, socket: TcpSocket<'a>) -> Self {
         MqttClient {
             client_id,
             socket,
@@ -54,7 +49,7 @@ impl<'a> MqttClient<'a> {
         }
         if let Err(e) = self.socket.connect(end_point).await {
             error!("Failed to connect to {:?}: {:?}", end_point, e);
-            return Err(MqttError::Overflow)
+            return Err(MqttError::Overflow);
         }
 
         let conn_pkt = Packet::Connect(Connect {
@@ -78,10 +73,11 @@ impl<'a> MqttClient<'a> {
         self.connection_state = false;
     }
 
-    pub async fn publish(&mut self,
+    pub async fn publish(
+        &mut self,
         topic_name: &str,
         payload: &[u8],
-        qos: QoS
+        qos: QoS,
     ) -> Result<(), MqttError> {
         let pub_pkt = Packet::Publish(Publish {
             dup: false,
@@ -98,11 +94,10 @@ impl<'a> MqttClient<'a> {
     }
 
     pub async fn poll(&mut self) {
-
         if self.socket.state() == State::Closed {
             self.connection_state = false;
             warn!("socket state is closed");
-            return
+            return;
         }
 
         if let Some(keep_alive_secs) = self.keep_alive_secs {
@@ -112,10 +107,10 @@ impl<'a> MqttClient<'a> {
                     Ok(()) => {
                         info!("Ping success");
                         self.last_sent_millis = self.current_millis();
-                    },
+                    }
                     Err(_) => warn!("Ping failed"),
                 }
-                return
+                return;
             }
         }
     }
@@ -138,7 +133,7 @@ impl<'a> MqttClient<'a> {
                 Ok(len) => {
                     self.recv_index = len;
                     return Ok(());
-                },
+                }
                 Err(_) => return Err(MqttError::Overflow),
             }
         }

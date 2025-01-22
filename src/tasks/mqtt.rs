@@ -52,19 +52,35 @@ pub async fn mqtt_handler(
         let remote_endpoint = if let Ok(endpoint) = dns_query(stack).await {
             endpoint
         } else {
-            continue
+            continue;
         };
         let mut mqtt_client = MqttClient::new("dc3dfe86-861a-47c5-994f-9ef9e1442882", socket);
-        mqtt_client.connect(remote_endpoint, 60, Some("bike_test"), Some(b"bike_test")).await.unwrap();
+        mqtt_client
+            .connect(remote_endpoint, 60, Some("bike_test"), Some(b"bike_test"))
+            .await
+            .unwrap();
         loop {
             if let Ok(frame) = channel.try_receive() {
                 use core::fmt::Write;
                 let mut frame_str: heapless::String<80> = heapless::String::new();
-                writeln!(&mut frame_str, "{:?}", frame).unwrap();
-                if let Err(e) = mqtt_client.publish("channels/dc3dfe86-861a-47c5-994f-9ef9e1442882/messages/can", frame_str.as_bytes(), mqttrust::QoS::AtMostOnce).await {
+                writeln!(
+                    &mut frame_str,
+                    "{{\"id\": {}, \"len\": {}, \"data\": {:?}}}",
+                    frame.id, frame.len, frame.data
+                )
+                .unwrap();
+                if let Err(e) = mqtt_client
+                    .publish(
+                        "channels/dc3dfe86-861a-47c5-994f-9ef9e1442882/messages/can",
+                        frame_str.as_bytes(),
+                        mqttrust::QoS::AtMostOnce,
+                    )
+                    .await
+                {
                     error!("Failed to publish MQTT packet: {:?}", e);
                     break;
                 }
+                println!("{frame_str}");
                 info!("MQTT sent OK");
             }
             mqtt_client.poll().await;

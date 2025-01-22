@@ -44,8 +44,8 @@ type TwaiOutbox = Channel<NoopRawMutex, CanFrame, 16>;
 
 mod at_command;
 mod dns;
-mod tasks;
 mod mqtt;
+mod tasks;
 use static_cell::StaticCell;
 use tasks::{
     can_receiver, connection, mqtt_handler, net_task, quectel_rx_handler, quectel_tx_handler,
@@ -152,7 +152,12 @@ async fn main(spawner: Spawner) -> ! {
     spawner.spawn(mqtt_handler(stack, trng, channel)).ok();
     spawner.spawn(quectel_rx_handler(ingress, uart_rx)).ok();
     spawner
-        .spawn(quectel_tx_handler(client, quectel_pen_pin, quectel_dtr_pin))
+        .spawn(quectel_tx_handler(
+            client,
+            quectel_pen_pin,
+            quectel_dtr_pin,
+            &URC_CHANNEL,
+        ))
         .ok();
     loop {
         Timer::after_secs(2).await;
