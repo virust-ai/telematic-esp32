@@ -1,11 +1,8 @@
 use embassy_net::{
     tcp::{State, TcpSocket},
-    IpEndpoint, Stack,
+    IpEndpoint,
 };
 use embassy_time::Instant;
-use embedded_io::{Read, Write};
-use esp_println::println;
-use esp_wifi::wifi::{WifiDevice, WifiStaDevice, WifiState};
 use log::{error, info, warn};
 use mqttrust::{
     encoding::v4::{encode_slice, Connect, Protocol},

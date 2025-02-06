@@ -2,10 +2,7 @@ use embassy_net::{
     tcp::{ConnectError, TcpSocket},
     Ipv4Address, Stack,
 };
-use embassy_time::{Duration, Instant, Timer};
-use embedded_tls::{
-    Aes128GcmSha256, Certificate, TlsConfig, TlsConnection, TlsContext, UnsecureProvider,
-};
+use embassy_time::{Duration, Timer};
 use esp_hal::rng::Trng;
 use esp_println::println;
 use esp_wifi::wifi::{WifiDevice, WifiStaDevice};
@@ -18,12 +15,12 @@ use log::{error, info};
 //     utils::rng_generator::CountingRng,
 // };
 
-use crate::{dns::DnsBuilder, mqtt::MqttClient, TwaiOutbox};
+use crate::{dns::DnsBuilder, mqtt::MqttClient, tasks::MQTT_CLIENT_ID, TwaiOutbox};
 
 #[embassy_executor::task]
 pub async fn mqtt_handler(
     stack: &'static Stack<WifiDevice<'static, WifiStaDevice>>,
-    trng: &'static mut Trng<'static>,
+    _trng: &'static mut Trng<'static>,
     channel: &'static TwaiOutbox,
 ) {
     let mut rx_buffer = [0; 4096];
@@ -54,7 +51,7 @@ pub async fn mqtt_handler(
         } else {
             continue;
         };
-        let mut mqtt_client = MqttClient::new("dc3dfe86-861a-47c5-994f-9ef9e1442882", socket);
+        let mut mqtt_client = MqttClient::new(MQTT_CLIENT_ID, socket);
         mqtt_client
             .connect(remote_endpoint, 60, Some("bike_test"), Some(b"bike_test"))
             .await
@@ -63,18 +60,16 @@ pub async fn mqtt_handler(
             if let Ok(frame) = channel.try_receive() {
                 use core::fmt::Write;
                 let mut frame_str: heapless::String<80> = heapless::String::new();
+                let mut mqtt_topic: heapless::String<80> = heapless::String::new();
                 writeln!(
                     &mut frame_str,
-                    "{{\"id\": {}, \"len\": {}, \"data\": {:?}}}",
+                    "{{\"id\": \"{:08X}\", \"len\": {}, \"data\": \"{:02X?}\"}}",
                     frame.id, frame.len, frame.data
                 )
                 .unwrap();
+                writeln!(&mut mqtt_topic, "channels/{}/messages/can", MQTT_CLIENT_ID).unwrap();
                 if let Err(e) = mqtt_client
-                    .publish(
-                        "channels/dc3dfe86-861a-47c5-994f-9ef9e1442882/messages/can",
-                        frame_str.as_bytes(),
-                        mqttrust::QoS::AtMostOnce,
-                    )
+                    .publish(&mqtt_topic, frame_str.as_bytes(), mqttrust::QoS::AtMostOnce)
                     .await
                 {
                     error!("Failed to publish MQTT packet: {:?}", e);

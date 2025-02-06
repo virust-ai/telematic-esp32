@@ -6,8 +6,8 @@ use esp_wifi::wifi::{
     WifiState,
 };
 
-const SSID: &str = "Ion Mobility VN";
-const PASSWORD: &str = "Imv@104A";
+const SSID: &str = env!("SSID");
+const PASSWORD: &str = env!("PASSWORD");
 
 #[embassy_executor::task]
 pub async fn connection(mut controller: WifiController<'static>) {
