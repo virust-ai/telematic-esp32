@@ -3,19 +3,19 @@
 
 use atat::{ResponseSlot, UrcChannel};
 use embassy_executor::Spawner;
-use embassy_net::{Stack, StackResources};
+use embassy_net::{Runner, Stack, StackResources};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
 use embassy_time::Timer;
 use esp_backtrace as _;
 #[cfg(feature = "wdg")]
 use esp_hal::rtc_cntl::{Rtc, RwdtStage};
 use esp_hal::{
+    clock::CpuClock,
     gpio::Output,
-    prelude::*,
     rng::Trng,
     timer::timg::TimerGroup,
     twai::{self, TwaiMode},
-    uart::Uart,
+    uart::{Config, Uart, UartRx},
 };
 use esp_wifi::{
     init,
@@ -85,23 +85,24 @@ async fn main(spawner: Spawner) -> ! {
     let seed = 1234;
 
     // Init network stack
-    let stack = &*mk_static!(
-        Stack<WifiDevice<'_, WifiStaDevice>>,
-        Stack::new(
-            wifi_interface,
-            config,
-            mk_static!(StackResources<3>, StackResources::<3>::new()),
-            seed
-        )
+    let (stack, runner) = embassy_net::new(
+        wifi_interface,
+        config,
+        mk_static!(StackResources<3>, StackResources::<3>::new()),
+        seed,
     );
+    let stack = &*mk_static!(Stack, stack);
 
     let uart_tx_pin = peripherals.GPIO23;
     let uart_rx_pin = peripherals.GPIO15;
     let quectel_pen_pin = Output::new(peripherals.GPIO21, esp_hal::gpio::Level::High);
     let quectel_dtr_pin = Output::new(peripherals.GPIO22, esp_hal::gpio::Level::High);
 
-    let uart0 = Uart::new(peripherals.UART0, uart_rx_pin, uart_tx_pin)
+    let config = Config::default().with_rx_fifo_full_threshold(64);
+    let uart0 = Uart::new(peripherals.UART0, config)
         .unwrap()
+        .with_rx(uart_rx_pin)
+        .with_tx(uart_tx_pin)
         .into_async();
     let (uart_rx, uart_tx) = uart0.split();
     static RES_SLOT: ResponseSlot<1024> = ResponseSlot::new();
@@ -148,8 +149,8 @@ async fn main(spawner: Spawner) -> ! {
 
     spawner.spawn(can_receiver(can_rx, channel)).ok();
     spawner.spawn(connection(controller)).ok();
-    spawner.spawn(net_task(stack)).ok();
-    spawner.spawn(mqtt_handler(stack, trng, channel)).ok();
+    spawner.spawn(net_task(runner)).ok();
+    spawner.spawn(mqtt_handler(&stack, trng, channel)).ok();
     spawner.spawn(quectel_rx_handler(ingress, uart_rx)).ok();
     spawner
         .spawn(quectel_tx_handler(

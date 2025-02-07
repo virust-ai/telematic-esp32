@@ -6,31 +6,30 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-esp-backtrace = { version = "0.14.2", features = [
+esp-backtrace = { version = "0.15.0", features = [
     "esp32c6",
     "exception-handler",
     "panic-handler",
     "println",
 ] }
-esp-hal = {version = "0.22.0", features = [ "esp32c6", "log"] }
-esp-hal-embassy     = { version = "0.5.0", features = ["esp32c6", "integrated-timers"] }
-esp-alloc = { version = "0.5.0" }
-embassy-executor    = { version = "0.6.3", features = ["task-arena-size-131072"] }
-embassy-net = { version = "0.4.0", features = [ "tcp", "udp", "dhcpv4", "medium-ethernet"] }
-embassy-time        = "0.3.2"
+esp-hal = {version = "0.23.0", features = [ "esp32c6", "log"] }
+esp-hal-embassy     = { version = "0.6.0", features = ["esp32c6"] }
+esp-alloc = { version = "0.6.0" }
+embassy-executor    = { version = "0.7.0", features = ["task-arena-size-131072"] }
+embassy-net = { version = "0.6.0", features = [ "tcp", "udp", "dhcpv4", "medium-ethernet"] }
+embassy-time        = "0.4.0"
 embassy-sync        = "0.6.1"
-esp-println = { version = "0.12.0", features = ["esp32c6", "log"] }
-esp-wifi = { version = "0.11.0", features = ["esp32c6", "wifi"] }
+esp-println = { version = "0.13.0", features = ["esp32c6", "log"] }
+esp-wifi = { version = "0.12.0", features = ["esp32c6", "wifi"] }
 embedded-can        = "0.4.1"
-log = { version = "0.4.20" }
-embedded-tls = { git = "https://github.com/drogue-iot/embedded-tls.git", default-features = false }
-atat = {git = "https://github.com/TuEmb/atat.git", rev = "b9b8278d8ce2c71a15a1232ba763087cfb76807f"}
+log = { version = "0.4.16" }
+esp-mbedtls = {git = "https://github.com/TuEmb/esp-mbedtls.git", branch = "esp32c6_support", features = ["esp32c6"]}
+atat = {git = "https://github.com/TuEmb/atat.git", rev = "67eb38b3b2cdbd1a5f68f536517a8f24d3fcba01"}
 static_cell         = { version = "2.1.0", features = ["nightly"] }
 heapless            = "0.8.0"
 embedded-io = "0.6.1"
 mqttrust = "0.6.0"
-smoltcp = { version = "0.11.0", default-features = false, features = [
-    "proto-igmp",
+smoltcp = { version = "0.12.0", default-features = false, features = [
     "proto-ipv4",
     "socket-tcp",
     "socket-icmp",

@@ -5,7 +5,6 @@ use embassy_net::{
 use embassy_time::{Duration, Timer};
 use esp_hal::rng::Trng;
 use esp_println::println;
-use esp_wifi::wifi::{WifiDevice, WifiStaDevice};
 use log::{error, info};
 // use rust_mqtt::{
 //     client::{
@@ -19,7 +18,7 @@ use crate::{dns::DnsBuilder, mqtt::MqttClient, tasks::MQTT_CLIENT_ID, TwaiOutbox
 
 #[embassy_executor::task]
 pub async fn mqtt_handler(
-    stack: &'static Stack<WifiDevice<'static, WifiStaDevice>>,
+    stack: &'static Stack<'static>,
     _trng: &'static mut Trng<'static>,
     channel: &'static TwaiOutbox,
 ) {
@@ -45,12 +44,27 @@ pub async fn mqtt_handler(
     loop {
         Timer::after(Duration::from_millis(1_000)).await;
 
-        let socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
+        let socket = TcpSocket::new(*stack, &mut rx_buffer, &mut tx_buffer);
         let remote_endpoint = if let Ok(endpoint) = dns_query(stack).await {
             endpoint
         } else {
             continue;
         };
+        // let certificates = Certificates {
+        //     ca_chain: X509::pem(
+        //         concat!(include_str!("./certs/certauth.cryptomix.com.pem"), "\0").as_bytes(),
+        //     )
+        //     .ok(),
+        //     certificate: X509::pem(
+        //         concat!(include_str!("./certs/certificate.pem"), "\0").as_bytes(),
+        //     )
+        //     .ok(),
+        //     private_key: X509::pem(
+        //         concat!(include_str!("./certs/private_key.pem"), "\0").as_bytes(),
+        //     )
+        //     .ok(),
+        //     password: None,
+        // };
         let mut mqtt_client = MqttClient::new(MQTT_CLIENT_ID, socket);
         mqtt_client
             .connect(remote_endpoint, 60, Some("bike_test"), Some(b"bike_test"))
@@ -175,11 +189,11 @@ pub async fn mqtt_handler(
 }
 
 pub async fn dns_query(
-    stack: &'static Stack<WifiDevice<'static, WifiStaDevice>>,
+    stack: &'static Stack<'static>,
 ) -> Result<embassy_net::IpEndpoint, ConnectError> {
     let mut rx_buffer = [0; 4096];
     let mut tx_buffer = [0; 4096];
-    let mut socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
+    let mut socket = TcpSocket::new(*stack, &mut rx_buffer, &mut tx_buffer);
     socket.set_timeout(Some(embassy_time::Duration::from_secs(10)));
     let mut buffer = [0; 512];
     let dns_ip = Ipv4Address::new(8, 8, 8, 8);

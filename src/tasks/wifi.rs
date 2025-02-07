@@ -1,9 +1,9 @@
-use embassy_net::Stack;
+use embassy_net::{Runner, Stack};
 use embassy_time::{Duration, Timer};
 use esp_println::println;
 use esp_wifi::wifi::{
-    ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent, WifiStaDevice,
-    WifiState,
+    ClientConfiguration, Configuration, WifiApDevice, WifiController, WifiDevice, WifiEvent,
+    WifiStaDevice, WifiState,
 };
 
 const SSID: &str = env!("SSID");
@@ -43,6 +43,6 @@ pub async fn connection(mut controller: WifiController<'static>) {
 }
 
 #[embassy_executor::task]
-pub async fn net_task(stack: &'static Stack<WifiDevice<'static, WifiStaDevice>>) {
-    stack.run().await
+pub async fn net_task(mut runner: Runner<'static, WifiDevice<'static, WifiStaDevice>>) {
+    runner.run().await
 }
