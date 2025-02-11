@@ -13,16 +13,14 @@ use esp_mbedtls::{asynch::Session, Certificates, Mode, Tls, TlsVersion, X509};
 use esp_println::println;
 use log::{error, info};
 
-const SERVERNAME: &CStr = c"broker-s.ionmobility.net";
-
 use crate::{
     dns::DnsBuilder,
     mqtt::MqttClient,
-    tasks::{MQTT_CLIENT_ID, MQTT_USR_NAME, MQTT_USR_PASS},
+    tasks::{MQTT_CLIENT_ID, MQTT_USR_NAME, MQTT_USR_PASS, SERVERNAME},
     TwaiOutbox,
 };
 
-use super::MQTT_SERVERNAME;
+use super::{MQTT_SERVERNAME, MQTT_SERVERPORT};
 
 #[embassy_executor::task]
 pub async fn mqtt_handler(
@@ -34,6 +32,7 @@ pub async fn mqtt_handler(
 ) {
     let mut rx_buffer = [0; 4096];
     let mut tx_buffer = [0; 4096];
+    let tls = Tls::new(&mut sha).unwrap().with_hardware_rsa(&mut rsa);
 
     //wait until wifi connected
     loop {
@@ -54,12 +53,13 @@ pub async fn mqtt_handler(
     loop {
         Timer::after(Duration::from_millis(1_000)).await;
 
-        let mut socket = TcpSocket::new(*stack, &mut rx_buffer, &mut tx_buffer);
         let remote_endpoint = if let Ok(endpoint) = dns_query(stack).await {
             endpoint
         } else {
             continue;
         };
+        println!("Establish TCP connection to broker {:?}", remote_endpoint);
+        let mut socket = TcpSocket::new(*stack, &mut rx_buffer, &mut tx_buffer);
         socket.connect(remote_endpoint).await.unwrap();
         let certificates = Certificates {
             ca_chain: X509::pem(concat!(include_str!("../../crt.pem"), "\0").as_bytes()).ok(),
@@ -67,7 +67,8 @@ pub async fn mqtt_handler(
             private_key: X509::pem(concat!(include_str!("../../dvt.key"), "\0").as_bytes()).ok(),
             password: None,
         };
-        let tls = Tls::new(&mut sha).unwrap().with_hardware_rsa(&mut rsa);
+
+        println!("Open TLS session");
         let session = Session::new(
             socket,
             Mode::Client {
@@ -78,7 +79,7 @@ pub async fn mqtt_handler(
             tls.reference(),
         )
         .unwrap();
-
+        println!("Establishing MQTT client connection ...");
         let mut mqtt_client = MqttClient::new(MQTT_CLIENT_ID, session);
         mqtt_client
             .connect(
@@ -89,6 +90,7 @@ pub async fn mqtt_handler(
             )
             .await
             .unwrap();
+        println!("Establishing MQTT client connection OK");
         loop {
             if let Ok(frame) = channel.try_receive() {
                 use core::fmt::Write;
@@ -155,7 +157,7 @@ pub async fn dns_query(
 
     let remote_endpoint = embassy_net::IpEndpoint {
         addr: embassy_net::IpAddress::Ipv4(broker_ipv4),
-        port: 8883,
+        port: MQTT_SERVERPORT,
     };
     Ok(remote_endpoint)
 }

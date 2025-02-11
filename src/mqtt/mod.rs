@@ -63,8 +63,8 @@ impl<'a> MqttClient<'a> {
         Ok(())
     }
 
-    pub fn disconnect(&mut self) {
-        self.session.close();
+    pub async fn disconnect(&mut self) {
+        self.session.close().await;
         self.connection_state = false;
     }
 
