@@ -1,8 +1,8 @@
-use embassy_net::{Runner, Stack};
+use embassy_net::Runner;
 use embassy_time::{Duration, Timer};
 use esp_println::println;
 use esp_wifi::wifi::{
-    ClientConfiguration, Configuration, WifiApDevice, WifiController, WifiDevice, WifiEvent,
+    ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent,
     WifiStaDevice, WifiState,
 };
 
@@ -13,6 +13,10 @@ const PASSWORD: &str = env!("PASSWORD");
 pub async fn connection(mut controller: WifiController<'static>) {
     println!("start connection task");
     println!("Device capabilities: {:?}", controller.capabilities());
+    println!("turn off power saving mode");
+    controller
+        .set_power_saving(esp_wifi::config::PowerSaveMode::None)
+        .unwrap();
     loop {
         if esp_wifi::wifi::wifi_state() == WifiState::StaConnected {
             // wait until we're no longer connected

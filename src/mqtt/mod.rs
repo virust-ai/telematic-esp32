@@ -1,8 +1,6 @@
-use embassy_net::{
-    tcp::{State, TcpSocket},
-    IpEndpoint,
-};
+use embassy_net::{tcp::TcpSocket, IpEndpoint};
 use embassy_time::Instant;
+use esp_mbedtls::asynch::Session;
 use log::{error, info, warn};
 use mqttrust::{
     encoding::v4::{encode_slice, Connect, Protocol},
@@ -11,7 +9,7 @@ use mqttrust::{
 
 pub struct MqttClient<'a> {
     client_id: &'a str,
-    socket: TcpSocket<'a>,
+    session: Session<'a, TcpSocket<'a>>,
     connection_state: bool,
     recv_buffer: [u8; 512],
     recv_index: usize,
@@ -20,10 +18,10 @@ pub struct MqttClient<'a> {
 }
 
 impl<'a> MqttClient<'a> {
-    pub fn new(client_id: &'a str, socket: TcpSocket<'a>) -> Self {
+    pub fn new(client_id: &'a str, session: Session<'a, TcpSocket<'a>>) -> Self {
         MqttClient {
             client_id,
-            socket,
+            session,
             connection_state: false,
             recv_buffer: [0u8; 512],
             recv_index: 0,
@@ -41,10 +39,10 @@ impl<'a> MqttClient<'a> {
     ) -> Result<(), MqttError> {
         self.keep_alive_secs = Some(keep_alive_secs);
 
-        if self.socket.state() != State::Closed {
-            self.disconnect();
-        }
-        if let Err(e) = self.socket.connect(end_point).await {
+        // if self.session.state() != State::Closed {
+        //     self.disconnect();
+        // }
+        if let Err(e) = self.session.connect().await {
             error!("Failed to connect to {:?}: {:?}", end_point, e);
             return Err(MqttError::Overflow);
         }
@@ -65,8 +63,8 @@ impl<'a> MqttClient<'a> {
         Ok(())
     }
 
-    pub fn disconnect(&mut self) {
-        self.socket.close();
+    pub async fn disconnect(&mut self) {
+        self.session.close().await;
         self.connection_state = false;
     }
 
@@ -91,11 +89,11 @@ impl<'a> MqttClient<'a> {
     }
 
     pub async fn poll(&mut self) {
-        if self.socket.state() == State::Closed {
-            self.connection_state = false;
-            warn!("socket state is closed");
-            return;
-        }
+        // if self.session.state() == State::Closed {
+        //     self.connection_state = false;
+        //     warn!("socket state is closed");
+        //     return;
+        // }
 
         if let Some(keep_alive_secs) = self.keep_alive_secs {
             if (self.last_sent_millis + (keep_alive_secs * 1000) as u64) < self.current_millis() {
@@ -115,7 +113,7 @@ impl<'a> MqttClient<'a> {
     async fn send(&mut self, packet: Packet<'_>) -> Result<(), MqttError> {
         let mut buffer = [0u8; 4096];
         let len = encode_slice(&packet, &mut buffer).unwrap();
-        match self.socket.write(&buffer[..len]).await {
+        match self.session.write(&buffer[..len]).await {
             Ok(_) => Ok(()),
             Err(e) => {
                 error!("Failed to send MQTT: {:?}", e);
@@ -126,7 +124,7 @@ impl<'a> MqttClient<'a> {
 
     async fn receive(&mut self) -> Result<(), MqttError> {
         loop {
-            match self.socket.read(&mut self.recv_buffer).await {
+            match self.session.read(&mut self.recv_buffer).await {
                 Ok(len) => {
                     self.recv_index = len;
                     return Ok(());

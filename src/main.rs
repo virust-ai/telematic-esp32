@@ -3,7 +3,7 @@
 
 use atat::{ResponseSlot, UrcChannel};
 use embassy_executor::Spawner;
-use embassy_net::{Runner, Stack, StackResources};
+use embassy_net::{Stack, StackResources};
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
 use embassy_time::Timer;
 use esp_backtrace as _;
@@ -15,11 +15,11 @@ use esp_hal::{
     rng::Trng,
     timer::timg::TimerGroup,
     twai::{self, TwaiMode},
-    uart::{Config, Uart, UartRx},
+    uart::{Config, Uart},
 };
 use esp_wifi::{
     init,
-    wifi::{WifiDevice, WifiStaDevice},
+    wifi::WifiStaDevice,
     EspWifiController,
 };
 
@@ -59,7 +59,7 @@ async fn main(spawner: Spawner) -> ! {
         config.cpu_clock = CpuClock::max();
         config
     });
-    esp_alloc::heap_allocator!(72 * 1024);
+    esp_alloc::heap_allocator!(200 * 1024);
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     let timg1 = TimerGroup::new(peripherals.TIMG1);
     esp_hal_embassy::init(timg1.timer0);
@@ -150,7 +150,15 @@ async fn main(spawner: Spawner) -> ! {
     spawner.spawn(can_receiver(can_rx, channel)).ok();
     spawner.spawn(connection(controller)).ok();
     spawner.spawn(net_task(runner)).ok();
-    spawner.spawn(mqtt_handler(&stack, trng, channel)).ok();
+    spawner
+        .spawn(mqtt_handler(
+            stack,
+            trng,
+            channel,
+            peripherals.SHA,
+            peripherals.RSA,
+        ))
+        .ok();
     spawner.spawn(quectel_rx_handler(ingress, uart_rx)).ok();
     spawner
         .spawn(quectel_tx_handler(
