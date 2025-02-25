@@ -46,6 +46,7 @@ mod at_command;
 mod dns;
 mod mqtt;
 mod tasks;
+mod esp_nvs;
 use static_cell::StaticCell;
 use tasks::{
     can_receiver, connection, mqtt_handler, net_task, quectel_rx_handler, quectel_tx_handler,
