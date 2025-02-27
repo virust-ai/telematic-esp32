@@ -631,11 +631,9 @@ pub struct SslConfigOther {
     pub level: u8,
 }
 
-
 #[derive(Clone, AtatCmd)]
 #[at_cmd("+QSSLCFG=\"ciphersuite\",2,0xFFFF", NoResponse)]
 pub struct SslSetCipherSuite;
-
 
 #[derive(Clone, AtatCmd)]
 #[at_cmd("+QFLST", NoResponse)]
