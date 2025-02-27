@@ -480,40 +480,37 @@ pub async fn quectel_tx_handler(
                 embassy_time::Timer::after(embassy_time::Duration::from_secs(1)).await;
                 info!("Quectel: MQTT publish");
                 let mut mqtt_topic: heapless::String<128> = heapless::String::new();
+                let mut payload: heapless::String<1024> = heapless::String::new();
                 writeln!(
                     &mut mqtt_topic,
-                    "channels/{}/messages/client/can",
+                    "channels/{}/messages/client/gps",
                     MQTT_CLIENT_ID
                 )
                 .unwrap();
-                let payload: String<1024> = heapless::String::from_str(
-                    "{'id': '18EFF0505','len': 8,'data': '19CCDD2F9812AF4D'}",
-                )
-                .unwrap();
-                info!("send MQTT payload: {}", payload);
 
-                match client
-                    .send(&MqttPublishExtended {
-                        tcp_connect_id: 0,
-                        msg_id: 0,
-                        qos: 0,
-                        retain: 0,
-                        topic: mqtt_topic,
-                        payload,
-                    })
-                    .await
-                {
-                    Ok(_) => {
-                        info!("Published to MQTT broker");
-                    }
-                    Err(e) => {
-                        error!("Failed to send AT command: {:?}", e);
-                    }
-                }
                 info!("Quectel: retrieve GPS RMC data");
                 match client.send(&RetrieveGpsRmc).await {
                     Ok(res) => {
                         info!("\t {:?}", res);
+                        writeln!(&mut payload, "{:?}", res).unwrap();
+                        match client
+                            .send(&MqttPublishExtended {
+                                tcp_connect_id: 0,
+                                msg_id: 0,
+                                qos: 0,
+                                retain: 0,
+                                topic: mqtt_topic,
+                                payload,
+                            })
+                            .await
+                        {
+                            Ok(_) => {
+                                info!("Published to MQTT broker");
+                            }
+                            Err(e) => {
+                                error!("Failed to send AT command: {:?}", e);
+                            }
+                        }
                     }
                     Err(e) => {
                         warn!("\t Failed to get GPS data: {:?}", e);
