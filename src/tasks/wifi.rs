@@ -2,8 +2,8 @@ use embassy_net::Runner;
 use embassy_time::{Duration, Timer};
 use esp_println::println;
 use esp_wifi::wifi::{
-    ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent,
-    WifiStaDevice, WifiState,
+    ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent, WifiStaDevice,
+    WifiState,
 };
 
 const SSID: &str = env!("SSID");

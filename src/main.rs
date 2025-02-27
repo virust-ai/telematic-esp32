@@ -17,11 +17,7 @@ use esp_hal::{
     twai::{self, TwaiMode},
     uart::{Config, Uart},
 };
-use esp_wifi::{
-    init,
-    wifi::WifiStaDevice,
-    EspWifiController,
-};
+use esp_wifi::{init, wifi::WifiStaDevice, EspWifiController};
 
 macro_rules! mk_static {
     ($t:ty,$val:expr) => {{
@@ -44,9 +40,9 @@ type TwaiOutbox = Channel<NoopRawMutex, CanFrame, 16>;
 
 mod at_command;
 mod dns;
+mod esp_nvs;
 mod mqtt;
 mod tasks;
-mod esp_nvs;
 use static_cell::StaticCell;
 use tasks::{
     can_receiver, connection, mqtt_handler, net_task, quectel_rx_handler, quectel_tx_handler,
