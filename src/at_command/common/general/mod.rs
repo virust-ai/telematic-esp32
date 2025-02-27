@@ -546,19 +546,114 @@ pub struct GetImei;
 #[at_cmd("+QCCID", Iccid, timeout_ms = 300)]
 pub struct GetIccid;
 
+/// AT+QMTCFG set the MQTT configurations
+///
+/// The command is used to set MQTT configurations.
+#[derive(Clone, AtatCmd)]
+#[at_cmd("+QMTCFG", NoResponse)]
+pub struct MqttConfig {
+    /// config name
+    /// String type. Name of configuration: SSL, version, ...
+    #[at_arg(position = 1)]
+    pub name: String<12>,
+    /// First parameter
+    #[at_arg(position = 2)]
+    pub param_1: Option<u8>,
+    /// Second parameter
+    #[at_arg(position = 3)]
+    pub param_2: Option<u8>,
+    /// Third parameter
+    #[at_arg(position = 4)]
+    pub param_3: Option<u8>,
+}
+
+/// AT+QFDEL delete file path
+///
+/// The command is used to delete the specified file <filename> in UFS.
+#[derive(Clone, AtatCmd)]
+#[at_cmd("+QFDEL", NoResponse)]
+pub struct FileDel {
+    /// Name of the file to be deleted
+    /// The max length is 80 bytes
+    #[at_arg(position = 1)]
+    pub name: String<80>,
+}
+
+/// AT+QFUPL upload a File to the Storage
+///
+/// The command is used to uploads a file to storage.
+#[derive(Clone, AtatCmd)]
+#[at_cmd("+QFUPL", NoResponse)]
+pub struct FileUpl {
+    /// Name of the file to be uploaded
+    /// The max length is 80 bytes
+    #[at_arg(position = 1)]
+    pub name: String<80>,
+    /// The file size expected to be uploaded.
+    /// The default value is 10240. Unit: byte
+    #[at_arg(position = 2)]
+    pub size: u32,
+}
+
+/// AT+QSSLCFG Configure Parameters of an SSL Cert
+///
+/// The command is used to configure parameters of an SSL Cert
+#[derive(Clone, AtatCmd)]
+#[at_cmd("+QSSLCFG", NoResponse)]
+pub struct SslConfigCert {
+    /// Name of SSL context
+    /// eg: sslversion, cacert, ...
+    #[at_arg(position = 1)]
+    pub name: String<80>,
+    /// The context ID. Range 0-5
+    #[at_arg(position = 2)]
+    pub context_id: u8,
+    /// The cert file path
+    #[at_arg(position = 3)]
+    pub cert_path: Option<String<80>>,
+}
+
+/// AT+QSSLCFG Configure Parameters of an SSL Cert
+///
+/// The command is used to configure parameters of an SSL Cert
+#[derive(Clone, AtatCmd)]
+#[at_cmd("+QSSLCFG", NoResponse)]
+pub struct SslConfigOther {
+    /// Name of SSL context
+    /// eg: sslversion, cacert, ...
+    #[at_arg(position = 1)]
+    pub name: String<80>,
+    /// The context ID. Range 0-5
+    #[at_arg(position = 2)]
+    pub context_id: u8,
+    /// The cert file path
+    #[at_arg(position = 3)]
+    pub level: u8,
+}
+
+
+#[derive(Clone, AtatCmd)]
+#[at_cmd("+QSSLCFG=\"ciphersuite\",2,0xFFFF", NoResponse)]
+pub struct SslSetCipherSuite;
+
+
+#[derive(Clone, AtatCmd)]
+#[at_cmd("+QFLST", NoResponse)]
+pub struct FileList;
+
 /// Send raw data to UART with out any AT command format
 ///
 /// Send raw data to UART
 #[derive(Clone)]
 pub struct SendRawData {
-    pub raw_data: heapless::Vec<u8, 128>,
+    pub raw_data: heapless::Vec<u8, 4096>,
     pub len: usize,
 }
 
 impl AtatCmd for SendRawData {
     type Response = NoResponse;
 
-    const MAX_LEN: usize = 1024;
+    const MAX_LEN: usize = 4096;
     const EXPECTS_RESPONSE_CODE: bool = false;
 
     fn write(&self, buf: &mut [u8]) -> usize {
