@@ -53,13 +53,13 @@ pub async fn quectel_tx_handler(
                 embassy_time::Timer::after(embassy_time::Duration::from_secs(1)).await;
                 pen.set_high();
                 embassy_time::Timer::after(embassy_time::Duration::from_secs(3)).await;
+            }
+            1 => {
                 info!("Quectel: disable echo mode");
                 if let Err(e) = client.send(&DisableEchoMode).await {
                     error!("Failed to send AT command: {:?}", e);
                     continue;
                 }
-            }
-            1 => {
                 info!("Quectel: get ManufacturerId");
                 match client.send(&GetManufacturerId).await {
                     Ok(res) => {
