@@ -49,6 +49,13 @@ pub struct SetFullFuncMode;
 #[at_cmd("+CPIN?", SimCardStatus)]
 pub struct GetSimCardStatus;
 
+/// Software reset for Quectel
+///
+/// Reset quectel module by software
+#[derive(Clone, AtatCmd)]
+#[at_cmd("+QRST=1", NoResponse)]
+pub struct SoftwareReset;
+
 /// Network Registration Status +CREG?
 ///
 /// Check Network Registration Status

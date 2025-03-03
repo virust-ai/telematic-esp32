@@ -24,7 +24,7 @@ use at_command::common::general::*;
 #[embassy_executor::task]
 pub async fn quectel_tx_handler(
     mut client: Client<'static, UartTx<'static, Async>, 1024>,
-    mut _pen: Output<'static>,
+    mut pen: Output<'static>,
     mut _dtr: Output<'static>,
     urc_channel: &'static UrcChannel<at_command::common::Urc, 128, 3>,
 ) -> ! {
@@ -36,6 +36,11 @@ pub async fn quectel_tx_handler(
         // These will all timeout after 1 sec, as there is no response
         match state {
             0 => {
+                info!("Quectel: Hardware reset");
+                pen.set_low();
+                embassy_time::Timer::after(embassy_time::Duration::from_secs(1)).await;
+                pen.set_high();
+                embassy_time::Timer::after(embassy_time::Duration::from_secs(3)).await;
                 info!("Quectel: disable echo mode");
                 if let Err(e) = client.send(&DisableEchoMode).await {
                     error!("Failed to send AT command: {:?}", e);
