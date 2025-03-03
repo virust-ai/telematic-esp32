@@ -14,12 +14,24 @@ use esp_println::print;
 use heapless::String;
 use log::{error, info, warn};
 use responses::FunctionalityLevelOfUE;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     at_command::{self, common::Urc},
-    tasks::{MQTT_CLIENT_ID, MQTT_SERVERNAME, MQTT_SERVERPORT, MQTT_USR_NAME},
+    tasks::{
+        utc_date_to_unix_timestamp, MQTT_CLIENT_ID, MQTT_SERVERNAME, MQTT_SERVERPORT, MQTT_USR_NAME,
+    },
 };
 use at_command::common::general::*;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TripData {
+    device_id: heapless::String<36>,
+    trip_id: heapless::String<36>,
+    latitude: f64,
+    longtitude: f64,
+    time_stamp: u64,
+}
 
 #[embassy_executor::task]
 pub async fn quectel_tx_handler(
@@ -44,6 +56,7 @@ pub async fn quectel_tx_handler(
                 info!("Quectel: disable echo mode");
                 if let Err(e) = client.send(&DisableEchoMode).await {
                     error!("Failed to send AT command: {:?}", e);
+                    continue;
                 }
             }
             1 => {
@@ -486,18 +499,38 @@ pub async fn quectel_tx_handler(
                 info!("Quectel: MQTT publish");
                 let mut mqtt_topic: heapless::String<128> = heapless::String::new();
                 let mut payload: heapless::String<1024> = heapless::String::new();
+                let mut deserialized: [u8; 1024] = [0u8; 1024];
                 writeln!(
                     &mut mqtt_topic,
                     "channels/{}/messages/client/gps",
                     MQTT_CLIENT_ID
                 )
                 .unwrap();
+                let mut device_id: heapless::String<36> = heapless::String::new();
+                let mut trip_id: heapless::String<36> = heapless::String::new();
+                write!(&mut trip_id, "{}", MQTT_CLIENT_ID).unwrap();
+                write!(&mut device_id, "{}", MQTT_CLIENT_ID).unwrap();
 
                 info!("Quectel: retrieve GPS RMC data");
                 match client.send(&RetrieveGpsRmc).await {
                     Ok(res) => {
                         info!("\t {:?}", res);
-                        writeln!(&mut payload, "{:?}", res).unwrap();
+                        let time_stamp = utc_date_to_unix_timestamp(&res.utc, &res.date);
+                        let trip_data = TripData {
+                            device_id,
+                            trip_id,
+                            latitude: res.latitude,
+                            longtitude: res.longtitude,
+                            time_stamp,
+                        };
+                        serde_json_core::to_slice(&trip_data, &mut deserialized).unwrap();
+                        let single_quote = core::str::from_utf8(&deserialized)
+                            .unwrap()
+                            .trim_end_matches('\0')
+                            .trim_ascii()
+                            .replace("\"", "'");
+                        payload.push_str(&single_quote);
+                        info!("MQTT payload: {}", payload);
                         match client
                             .send(&MqttPublishExtended {
                                 tcp_connect_id: 0,
