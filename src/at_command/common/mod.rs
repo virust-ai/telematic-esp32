@@ -66,4 +66,7 @@ pub enum Urc {
     /// the user sends a AT+CPIN? and no SIM is inserted
     #[at_urc("+CME ERROR")]
     CmeError(CmeError),
+
+    #[at_urc("+QFLST")]
+    ListFile(FileListResponse),
 }

@@ -608,3 +608,12 @@ pub struct CmeError {
     #[at_arg(position = 1)]
     pub err: u8,
 }
+
+/// URC +QFLST response
+#[derive(Clone, Debug, AtatResp)]
+pub struct FileListResponse {
+    #[at_arg(position = 1)]
+    pub file_name: String<64>,
+    #[at_arg(position = 2)]
+    pub size: u32,
+}

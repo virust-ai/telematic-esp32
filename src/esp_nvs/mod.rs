@@ -11,7 +11,7 @@ const DVT_KEY_SIZE: usize = 1678;
 
 pub enum NvsError {
     LenErr,
-    Other
+    Other,
 }
 
 #[allow(dead_code)]

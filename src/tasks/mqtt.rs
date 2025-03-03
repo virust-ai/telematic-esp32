@@ -1,5 +1,3 @@
-use core::ffi::CStr;
-
 use embassy_net::{
     tcp::{ConnectError, TcpSocket},
     Ipv4Address, Stack,
