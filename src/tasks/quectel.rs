@@ -29,8 +29,8 @@ pub struct TripData {
     device_id: heapless::String<36>,
     trip_id: heapless::String<36>,
     latitude: f64,
-    longtitude: f64,
-    time_stamp: u64,
+    longitude: f64,
+    timestamp: u64,
 }
 
 #[embassy_executor::task]
@@ -502,7 +502,7 @@ pub async fn quectel_tx_handler(
                 let mut deserialized: [u8; 1024] = [0u8; 1024];
                 writeln!(
                     &mut mqtt_topic,
-                    "channels/{}/messages/client/gps",
+                    "channels/{}/messages/client/trip",
                     MQTT_CLIENT_ID
                 )
                 .unwrap();
@@ -515,13 +515,15 @@ pub async fn quectel_tx_handler(
                 match client.send(&RetrieveGpsRmc).await {
                     Ok(res) => {
                         info!("\t {:?}", res);
-                        let time_stamp = utc_date_to_unix_timestamp(&res.utc, &res.date);
+                        let timestamp = utc_date_to_unix_timestamp(&res.utc, &res.date);
                         let trip_data = TripData {
                             device_id,
                             trip_id,
-                            latitude: res.latitude,
-                            longtitude: res.longtitude,
-                            time_stamp,
+                            latitude: ((res.latitude as u64 / 100) as f64)
+                                + ((res.latitude % 100.0f64) / 60.0f64),
+                            longitude: ((res.longitude as u64 / 100) as f64)
+                                + ((res.longitude % 100.0f64) / 60.0f64),
+                            timestamp,
                         };
                         serde_json_core::to_slice(&trip_data, &mut deserialized).unwrap();
                         let single_quote = core::str::from_utf8(&deserialized)

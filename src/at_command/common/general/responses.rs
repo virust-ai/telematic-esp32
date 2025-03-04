@@ -88,7 +88,7 @@ pub struct GpsData {
     #[at_arg(position = 4)]
     pub latitude_direction: char,
     #[at_arg(position = 5)]
-    pub longtitude: f64,
+    pub longitude: f64,
     #[at_arg(position = 6)]
     pub longtitude_direction: char,
     #[at_arg(position = 7)]
