@@ -168,7 +168,7 @@ pub async fn quectel_tx_handler(
                 raw_data.clear();
                 info!("Quectel: list files");
                 let mut subscriber = urc_channel.subscribe().unwrap();
-                client.send(&FileList).await.unwrap();
+                let _ = client.send(&FileList).await.unwrap();
                 let now = embassy_time::Instant::now();
                 loop {
                     embassy_time::Timer::after(embassy_time::Duration::from_secs(1)).await;
@@ -188,49 +188,49 @@ pub async fn quectel_tx_handler(
                     }
                 }
                 info!("Quectel: remove CA_CRT path");
-                client
+                let _ = client
                     .send(&FileDel {
                         name: heapless::String::from_str("crt.pem").unwrap(),
                     })
                     .await;
                 info!("Quectel: remove CLIENT_CRT path");
-                client
+                let _ = client
                     .send(&FileDel {
                         name: heapless::String::from_str("dvt.crt").unwrap(),
                     })
                     .await;
                 info!("Quectel: remove CLIENT_KEY path");
-                client
+                let _ = client
                     .send(&FileDel {
                         name: heapless::String::from_str("dvt.key").unwrap(),
                     })
                     .await;
                 // Upload CA cert
                 info!("Quectel: Upload MQTT certs to quectel");
-                raw_data.extend_from_slice(&ca_chain[0..1024]);
-                client
+                let _ = raw_data.extend_from_slice(&ca_chain[0..1024]);
+                let _ = client
                     .send(&FileUpl {
                         name: heapless::String::from_str("crt.pem").unwrap(),
                         size: 2574,
                     })
                     .await;
-                client
+                let _ = client
                     .send(&SendRawData {
                         raw_data: raw_data.clone(),
                         len: 1024,
                     })
                     .await;
                 raw_data.clear();
-                raw_data.extend_from_slice(&ca_chain[1024..2048]);
-                client
+                let _ = raw_data.extend_from_slice(&ca_chain[1024..2048]);
+                let _ = client
                     .send(&SendRawData {
                         raw_data: raw_data.clone(),
                         len: 1024,
                     })
                     .await;
                 raw_data.clear();
-                raw_data.extend_from_slice(&ca_chain[2048..]);
-                client
+                let _ = raw_data.extend_from_slice(&ca_chain[2048..]);
+                let _ = client
                     .send(&SendRawData {
                         raw_data: raw_data.clone(),
                         len: 526,
@@ -238,23 +238,23 @@ pub async fn quectel_tx_handler(
                     .await;
                 embassy_time::Timer::after(embassy_time::Duration::from_secs(1)).await;
                 // Upload client cert
-                client
+                let _ = client
                     .send(&FileUpl {
                         name: heapless::String::from_str("dvt.crt").unwrap(),
                         size: 1268,
                     })
                     .await;
                 raw_data.clear();
-                raw_data.extend_from_slice(&certificate[0..1024]);
-                client
+                let _ = raw_data.extend_from_slice(&certificate[0..1024]);
+                let _ = client
                     .send(&SendRawData {
                         raw_data: raw_data.clone(),
                         len: 1024,
                     })
                     .await;
                 raw_data.clear();
-                raw_data.extend_from_slice(&certificate[1024..]);
-                client
+                let _ = raw_data.extend_from_slice(&certificate[1024..]);
+                let _ = client
                     .send(&SendRawData {
                         raw_data: raw_data.clone(),
                         len: 244,
@@ -262,23 +262,23 @@ pub async fn quectel_tx_handler(
                     .await;
                 embassy_time::Timer::after(embassy_time::Duration::from_secs(1)).await;
                 // Upload client key
-                client
+                let _ = client
                     .send(&FileUpl {
                         name: heapless::String::from_str("dvt.key").unwrap(),
                         size: 1678,
                     })
                     .await;
                 raw_data.clear();
-                raw_data.extend_from_slice(&private_key[0..1024]);
-                client
+                let _ = raw_data.extend_from_slice(&private_key[0..1024]);
+                let _ = client
                     .send(&SendRawData {
                         raw_data: raw_data.clone(),
                         len: 1024,
                     })
                     .await;
                 raw_data.clear();
-                raw_data.extend_from_slice(&private_key[1024..]);
-                client
+                let _ = raw_data.extend_from_slice(&private_key[1024..]);
+                let _ = client
                     .send(&SendRawData {
                         raw_data: raw_data.clone(),
                         len: 654,
@@ -286,7 +286,7 @@ pub async fn quectel_tx_handler(
                     .await;
 
                 info!("Quectel: set MQTTS configuration");
-                client
+                let _ = client
                     .send(&MqttConfig {
                         name: heapless::String::from_str("recv/mode").unwrap(),
                         param_1: Some(0),
@@ -294,7 +294,7 @@ pub async fn quectel_tx_handler(
                         param_3: Some(1),
                     })
                     .await;
-                client
+                let _ = client
                     .send(&MqttConfig {
                         name: heapless::String::from_str("SSL").unwrap(),
                         param_1: Some(0),
@@ -302,50 +302,50 @@ pub async fn quectel_tx_handler(
                         param_3: Some(2),
                     })
                     .await;
-                client
+                let _ = client
                     .send(&SslConfigCert {
                         name: heapless::String::from_str("cacert").unwrap(),
                         context_id: 2,
                         cert_path: Some(heapless::String::from_str("UFS:crt.pem").unwrap()),
                     })
                     .await;
-                client
+                let _ = client
                     .send(&SslConfigCert {
                         name: heapless::String::from_str("clientcert").unwrap(),
                         context_id: 2,
                         cert_path: Some(heapless::String::from_str("UFS:dvt.crt").unwrap()),
                     })
                     .await;
-                client
+                let _ = client
                     .send(&SslConfigCert {
                         name: heapless::String::from_str("clientkey").unwrap(),
                         context_id: 2,
                         cert_path: Some(heapless::String::from_str("UFS:dvt.key").unwrap()),
                     })
                     .await;
-                client
+                let _ = client
                     .send(&SslConfigOther {
                         name: heapless::String::from_str("seclevel").unwrap(),
                         context_id: 2,
                         level: 2,
                     })
                     .await;
-                client
+                let _ = client
                     .send(&SslConfigOther {
                         name: heapless::String::from_str("sslversion").unwrap(),
                         context_id: 2,
                         level: 4,
                     })
                     .await;
-                client.send(&SslSetCipherSuite).await;
-                client
+                let _ = client.send(&SslSetCipherSuite).await;
+                let _ = client
                     .send(&SslConfigOther {
                         name: heapless::String::from_str("ignorelocaltime").unwrap(),
                         context_id: 2,
                         level: 1,
                     })
                     .await;
-                client
+                let _ = client
                     .send(&MqttConfig {
                         name: heapless::String::from_str("version").unwrap(),
                         param_1: Some(0),
@@ -531,7 +531,7 @@ pub async fn quectel_tx_handler(
                             .trim_end_matches('\0')
                             .trim_ascii()
                             .replace("\"", "'");
-                        payload.push_str(&single_quote);
+                        let _ = payload.push_str(&single_quote);
                         info!("MQTT payload: {}", payload);
                         match client
                             .send(&MqttPublishExtended {

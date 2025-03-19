@@ -151,6 +151,7 @@ pub enum PowerDownMode {
 pub struct NoResponse;
 
 #[derive(Clone, AtatResp)]
+#[allow(dead_code)]
 pub struct OkResponse {
     pub code: String<2>,
 }
@@ -168,6 +169,7 @@ pub struct MessageWaitingIndication;
 ///
 /// International Mobile Equipment Identity (IMEI) number of the module.
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct Imei {
     pub imei: Bytes<15>,
 }
@@ -176,6 +178,7 @@ pub struct Imei {
 ///
 /// Integrated Circuit Card Identifier number of the (U)SIM card.
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct Iccid {
     pub iccid: Bytes<20>,
 }
@@ -184,6 +187,7 @@ pub struct Iccid {
 ///
 /// Returns the firmware version of the module.
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct VersionInfo {
     #[at_arg(position = 0)]
     pub code: Bytes<64>,
@@ -191,6 +195,7 @@ pub struct VersionInfo {
 
 /// Network Information
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct NetworkInfo {
     /// Access technology
     /// String type. Access technology selected.
@@ -228,6 +233,7 @@ pub struct NetworkInfo {
 /// When <n>=4 and the command is executed successfully :
 /// +CEREG: <n>,<stat>[,[<tac>],[<ci>],[<AcT>][,[<cause_type>],[<reject_cause>][,[<Active-Time>],[<Periodic-TAU>]]]]
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct EPSNetworkRegistrationStatusResponse {
     /// <n>
     /// Integer type. The type of unsolicited result code presentation.
@@ -315,6 +321,7 @@ pub struct EPSNetworkRegistrationStatusResponse {
 /// When <n>=4 and the command is executed successfully :
 ///   +CGREG: <n>,<stat>[,[<lac>],[<ci>],[<AcT>],[<rac>][,[<cause_type>],[<reject_cause>][,[<Active-Time>],[<Periodic-RAU>],[<GPRS-READY-timer>]]]]
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct EGPRSNetworkRegistrationStatusResponse {
     /// <n>
     /// Integer type. The type of unsolicited result code presentation.
@@ -392,6 +399,7 @@ pub struct EGPRSNetworkRegistrationStatusResponse {
 
 /// Signal Information
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct GetSignalStrengthResponse {
     /// String type. Service mode in which the MT will unsolicitedly report the signal strength.
     pub mode: String<32>,
@@ -414,6 +422,7 @@ pub struct GetSignalStrengthResponse {
 ///
 /// NOTE: we will only parse the first context
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct PDPContextInfo {
     /// <contextID>
     /// Integer type. The PDP context identifier.
@@ -439,6 +448,7 @@ pub struct PDPContextInfo {
 
 /// Latest Time Synchronized Through NITZ Network
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct NitzTimeResponse {
     /// String type: "<time>,<dst>""
     /// Time format: String type "yy/MM/dd,hh:mm:ss±zz", where characters indicate year (two last
@@ -452,6 +462,7 @@ pub struct NitzTimeResponse {
 
 /// Latest Time Synchronized Through NTP Network
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct NtpTimeResponse {
     /// Error code of operation.
     pub err: u8,
@@ -468,6 +479,7 @@ pub struct NtpTimeResponse {
 ///
 ///
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct MqttOpenResponse {
     /// <tcpconnectID>
     /// Integer type. The MQTT socket identifier from 0 to 5.
@@ -488,6 +500,7 @@ pub struct MqttOpenResponse {
 
 /// URC +QMTSTAT response
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct MqttStatusResponse {
     /// <tcpconnectID>
     /// Integer type. The MQTT socket identifier from 0 to 5.
@@ -508,6 +521,7 @@ pub struct MqttStatusResponse {
 
 /// URC +QMTCONN response
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct MqttConnectResponse {
     /// <tcpconnectID>
     /// Integer type. The MQTT socket identifier from 0 to 5.
@@ -534,6 +548,7 @@ pub struct MqttConnectResponse {
 
 /// URC +QMTPUB response
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct MqttPublishResponse {
     /// <tcpconnectID>
     /// Integer type. The MQTT socket identifier from 0 to 5.
@@ -560,6 +575,7 @@ pub struct MqttPublishResponse {
 
 /// URC +QMTDISC response
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct MqttDisconnectResponse {
     /// <tcpconnectID>
     /// Integer type. The MQTT socket identifier from 0 to 5.
@@ -575,6 +591,7 @@ pub struct MqttDisconnectResponse {
 
 /// URC +QMTCLOSE response
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct MqttCloseResponse {
     /// <tcpconnectID>
     /// Integer type. The MQTT socket identifier from 0 to 5.
@@ -602,6 +619,7 @@ pub struct MqttCloseResponse {
 /// 15: SIM wrong
 /// 16: Incorrect password
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct CmeError {
     /// <err>
     /// Integer type. The error code.
@@ -611,6 +629,7 @@ pub struct CmeError {
 
 /// URC +QFLST response
 #[derive(Clone, Debug, AtatResp)]
+#[allow(dead_code)]
 pub struct FileListResponse {
     #[at_arg(position = 1)]
     pub file_name: String<64>,

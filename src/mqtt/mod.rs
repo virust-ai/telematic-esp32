@@ -7,6 +7,7 @@ use mqttrust::{
     MqttError, Packet, Publish, QoS,
 };
 
+#[allow(dead_code)]
 pub struct MqttClient<'a> {
     client_id: &'a str,
     session: Session<'a, TcpSocket<'a>>,
@@ -16,7 +17,7 @@ pub struct MqttClient<'a> {
     keep_alive_secs: Option<u16>,
     last_sent_millis: u64,
 }
-
+#[allow(dead_code)]
 impl<'a> MqttClient<'a> {
     pub fn new(client_id: &'a str, session: Session<'a, TcpSocket<'a>>) -> Self {
         MqttClient {
@@ -64,7 +65,7 @@ impl<'a> MqttClient<'a> {
     }
 
     pub async fn disconnect(&mut self) {
-        self.session.close().await;
+        let _ = self.session.close().await;
         self.connection_state = false;
     }
 
@@ -105,7 +106,6 @@ impl<'a> MqttClient<'a> {
                     }
                     Err(_) => warn!("Ping failed"),
                 }
-                return;
             }
         }
     }
@@ -123,14 +123,12 @@ impl<'a> MqttClient<'a> {
     }
 
     async fn receive(&mut self) -> Result<(), MqttError> {
-        loop {
-            match self.session.read(&mut self.recv_buffer).await {
-                Ok(len) => {
-                    self.recv_index = len;
-                    return Ok(());
-                }
-                Err(_) => return Err(MqttError::Overflow),
+        match self.session.read(&mut self.recv_buffer).await {
+            Ok(len) => {
+                self.recv_index = len;
+                Ok(())
             }
+            Err(_) => Err(MqttError::Overflow),
         }
     }
 

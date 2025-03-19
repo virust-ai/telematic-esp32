@@ -57,10 +57,10 @@ pub fn utc_date_to_unix_timestamp(utc: &[u8], date: &[u8]) -> u64 {
     days += day as u64 - 1;
 
     // Convert to seconds
-    let timestamp = days * 86400 + (hour as u64) * 3600 + (minute as u64) * 60 + second as u64;
+    let mut timestamp = days * 86400 + (hour as u64) * 3600 + (minute as u64) * 60 + second as u64;
 
     // Convert milliseconds to UNIX timestamp with ms precision
-    let timestamp_millis = timestamp * 1000 + millis as u64;
+    timestamp = timestamp * 1000 + millis as u64;
 
-    timestamp_millis
+    timestamp
 }
