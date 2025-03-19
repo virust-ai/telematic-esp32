@@ -1,22 +1,31 @@
 use embedded_storage::{ReadStorage, Storage};
 use esp_storage::FlashStorage;
 
-const NVS_ADDR: u32 = 0x9000;
-const CRT_PEM_ADDR: u32 = 0x9000;
-const CRT_PEM_SIZE: usize = 2574;
-const DVT_CRT_ADDR: u32 = 0xA000;
-const DVT_CRT_SIZE: usize = 1268;
-const DVT_KEY_ADDR: u32 = 0xB000;
-const DVT_KEY_SIZE: usize = 1678;
+#[derive(Copy, Clone)]
+#[allow(dead_code)]
+pub enum BlockId {
+    CrtPemId = 0x0,
+    DvtCrtId = 0x1,
+    DvtKeyId = 0x2,
+    BlockNum = 0x3,
+}
 
 pub enum NvsError {
-    LenErr,
-    Other,
+    IdInvalid,
+    LenInvalid,
+    WriteErr,
+    ReadErr,
 }
 
 #[allow(dead_code)]
-pub struct EspNvs {
-    addr: u32,
+struct NvsConfig {
+    pub addr: u32,
+    pub size: usize,
+}
+
+#[allow(dead_code)]
+struct EspNvs {
+    blocks: [NvsConfig; 0x03],
     storage: FlashStorage,
 }
 
@@ -24,57 +33,55 @@ pub struct EspNvs {
 impl EspNvs {
     pub fn init() -> Self {
         Self {
-            addr: NVS_ADDR,
+            blocks: [
+                NvsConfig {
+                    addr: 0x9000,
+                    size: 2574,
+                },
+                NvsConfig {
+                    addr: 0xA000,
+                    size: 1268,
+                },
+                NvsConfig {
+                    addr: 0xB000,
+                    size: 1678,
+                },
+            ],
             storage: FlashStorage::new(),
         }
     }
 
-    pub fn nvs_write_crt_pem(&mut self, buf: &[u8]) -> Result<(), NvsError> {
-        if buf.len() != CRT_PEM_SIZE {
-            return Err(NvsError::LenErr);
-        } else {
-            self.storage.write(CRT_PEM_ADDR, buf);
-            Ok(())
+    pub fn nvs_write(&mut self, id: BlockId, buf: &[u8]) -> Result<(), NvsError> {
+        if id as usize >= self.blocks.len() {
+            return Err(NvsError::IdInvalid);
+        }
+
+        let block = &self.blocks[id as usize];
+
+        if buf.len() != block.size {
+            return Err(NvsError::LenInvalid);
+        }
+
+        match self.storage.write(block.addr, buf) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(NvsError::WriteErr),
         }
     }
-    pub fn nvs_write_dvt_crt(&mut self, buf: &[u8]) -> Result<(), NvsError> {
-        if buf.len() != DVT_CRT_SIZE {
-            return Err(NvsError::LenErr);
-        } else {
-            self.storage.write(DVT_CRT_ADDR, buf);
-            Ok(())
+
+    pub fn nvs_read(&mut self, id: BlockId, buf: &mut [u8]) -> Result<(), NvsError> {
+        if id as usize >= self.blocks.len() {
+            return Err(NvsError::IdInvalid);
         }
-    }
-    pub fn nvs_write_dvt_key(&mut self, buf: &[u8]) -> Result<(), NvsError> {
-        if buf.len() != DVT_KEY_SIZE {
-            return Err(NvsError::LenErr);
-        } else {
-            self.storage.write(DVT_KEY_ADDR, buf);
-            Ok(())
+
+        let block = &self.blocks[id as usize];
+
+        if buf.len() != block.size {
+            return Err(NvsError::LenInvalid);
         }
-    }
-    pub fn nvs_read_crt_pem(&mut self, buf: &mut [u8]) -> Result<(), NvsError> {
-        if buf.len() != CRT_PEM_SIZE {
-            return Err(NvsError::LenErr);
-        } else {
-            self.storage.read(CRT_PEM_ADDR, buf);
-            Ok(())
-        }
-    }
-    pub fn nvs_read_dvt_crt(&mut self, buf: &mut [u8]) -> Result<(), NvsError> {
-        if buf.len() != DVT_CRT_SIZE {
-            return Err(NvsError::LenErr);
-        } else {
-            self.storage.read(DVT_CRT_ADDR, buf);
-            Ok(())
-        }
-    }
-    pub fn nvs_read_dvt_key(&mut self, buf: &mut [u8]) -> Result<(), NvsError> {
-        if buf.len() != DVT_KEY_SIZE {
-            return Err(NvsError::LenErr);
-        } else {
-            self.storage.read(DVT_KEY_ADDR, buf);
-            Ok(())
+
+        match self.storage.read(block.addr, buf) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(NvsError::ReadErr),
         }
     }
 }
