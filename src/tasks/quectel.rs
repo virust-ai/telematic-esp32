@@ -41,9 +41,9 @@ pub async fn quectel_tx_handler(
     urc_channel: &'static UrcChannel<at_command::common::Urc, 128, 3>,
 ) -> ! {
     let mut state: u32 = 0;
-    let ca_chain = include_str!("../../crt.pem").as_bytes();
-    let certificate = include_str!("../../dvt.crt").as_bytes();
-    let private_key = include_str!("../../dvt.key").as_bytes();
+    let ca_chain = include_str!("../cert/crt.pem").as_bytes();
+    let certificate = include_str!("../cert/dvt.crt").as_bytes();
+    let private_key = include_str!("../cert/dvt.key").as_bytes();
     loop {
         // These will all timeout after 1 sec, as there is no response
         match state {

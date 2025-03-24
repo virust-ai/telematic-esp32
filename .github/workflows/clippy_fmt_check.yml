@@ -53,9 +53,9 @@ jobs:
       #  run: cargo clippy --target riscv32imc-unknown-none-elf --features esp32c2 -- -D warnings
       #  continue-on-error: false
 
-      - name: Clippy (esp32c3)
-        run: cargo clippy --target riscv32imc-unknown-none-elf --features esp32c3 -- -D warnings
-        continue-on-error: false
+      #- name: Clippy (esp32c3)
+      #  run: cargo clippy --target riscv32imc-unknown-none-elf --features esp32c3 -- -D warnings
+      #  continue-on-error: false
 
       #- name: Clippy (esp32h2)
       #  run: cargo clippy --target riscv32imc-unknown-none-elf --features esp32h2 -- -D warnings

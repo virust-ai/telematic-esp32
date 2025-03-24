@@ -60,9 +60,9 @@ pub async fn mqtt_handler(
         let mut socket = TcpSocket::new(*stack, &mut rx_buffer, &mut tx_buffer);
         socket.connect(remote_endpoint).await.unwrap();
         let certificates = Certificates {
-            ca_chain: X509::pem(concat!(include_str!("../../crt.pem"), "\0").as_bytes()).ok(),
-            certificate: X509::pem(concat!(include_str!("../../dvt.crt"), "\0").as_bytes()).ok(),
-            private_key: X509::pem(concat!(include_str!("../../dvt.key"), "\0").as_bytes()).ok(),
+            ca_chain: X509::pem(concat!(include_str!("../cert/crt.pem"), "\0").as_bytes()).ok(),
+            certificate: X509::pem(concat!(include_str!("../cert/dvt.crt"), "\0").as_bytes()).ok(),
+            private_key: X509::pem(concat!(include_str!("../cert/dvt.key"), "\0").as_bytes()).ok(),
             password: None,
         };
 
