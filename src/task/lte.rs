@@ -15,14 +15,11 @@ use heapless::String;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 
-
-use crate::svc::atcmd::response::*;
 use crate::svc::atcmd::general::*;
+use crate::svc::atcmd::response::*;
 use crate::svc::atcmd::Urc;
 
-use crate::cfg::net_cfg::{
-    MQTT_CLIENT_ID, MQTT_SERVER_NAME, MQTT_SERVER_PORT, MQTT_USR_NAME
-};
+use crate::cfg::net_cfg::{MQTT_CLIENT_ID, MQTT_SERVER_NAME, MQTT_SERVER_PORT, MQTT_USR_NAME};
 
 use crate::util::time::utc_date_to_unix_timestamp;
 
@@ -445,13 +442,14 @@ pub async fn quectel_tx_handler(
                     info!("Quectel: connecting MQTT");
                     let username = Some(String::<64>::from_str(MQTT_USR_NAME).unwrap());
                     let password = Some(String::<64>::from_str(MQTT_USR_NAME).unwrap());
-                    let client_id: String<23> = match heapless::String::from_str("telematics-control-unit") {
-                        Ok(id) => id,
-                        Err(e) => {
-                            error!("what the fuck ??? {:?}", e);
-                            panic!()
-                        }
-                    };
+                    let client_id: String<23> =
+                        match heapless::String::from_str("telematics-control-unit") {
+                            Ok(id) => id,
+                            Err(e) => {
+                                error!("what the fuck ??? {:?}", e);
+                                panic!()
+                            }
+                        };
                     match client
                         .send(&MqttConnect {
                             tcp_connect_id: 0,
@@ -568,14 +566,7 @@ pub async fn quectel_tx_handler(
 
 #[embassy_executor::task]
 pub async fn quectel_rx_handler(
-    mut ingress: Ingress<
-        'static,
-        DefaultDigester<Urc>,
-        Urc,
-        1024,
-        128,
-        3,
-    >,
+    mut ingress: Ingress<'static, DefaultDigester<Urc>, Urc, 1024, 128, 3>, // ingress buffer size, urc buffer size, urc channel size
     mut reader: UartRx<'static, Async>,
 ) -> ! {
     ingress.read_from(&mut reader).await

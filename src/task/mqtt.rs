@@ -11,13 +11,10 @@ use esp_mbedtls::{asynch::Session, Certificates, Mode, Tls, TlsVersion, X509};
 use esp_println::println;
 use log::{error, info};
 
-use crate::svc::{
-    dns::DnsBuilder,
-    mqtt::MqttClient
-};
+use crate::svc::{dns::DnsBuilder, mqtt::MqttClient};
 
-use crate::task::can::TwaiOutbox;
 use crate::cfg::net_cfg::*;
+use crate::task::can::TwaiOutbox;
 
 #[embassy_executor::task]
 pub async fn mqtt_handler(
@@ -60,8 +57,10 @@ pub async fn mqtt_handler(
         socket.connect(remote_endpoint).await.unwrap();
         let certificates = Certificates {
             ca_chain: X509::pem(concat!(include_str!("../../cert/crt.pem"), "\0").as_bytes()).ok(),
-            certificate: X509::pem(concat!(include_str!("../../cert/dvt.crt"), "\0").as_bytes()).ok(),
-            private_key: X509::pem(concat!(include_str!("../../cert/dvt.key"), "\0").as_bytes()).ok(),
+            certificate: X509::pem(concat!(include_str!("../../cert/dvt.crt"), "\0").as_bytes())
+                .ok(),
+            private_key: X509::pem(concat!(include_str!("../../cert/dvt.key"), "\0").as_bytes())
+                .ok(),
             password: None,
         };
 

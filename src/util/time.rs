@@ -1,4 +1,3 @@
-
 /// Days per month for non-leap and leap years
 const DAYS_IN_MONTH: [[u16; 12]; 2] = [
     [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31], // Normal year

@@ -1,7 +1,7 @@
+use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
+use embedded_can::{Frame, Id};
 use esp_hal::twai::TwaiRx;
 use log::{error, info};
-use embedded_can::{Frame, Id};
-use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
 
 #[derive(Debug)]
 #[allow(dead_code)]

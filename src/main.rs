@@ -2,20 +2,19 @@
 #![no_main]
 
 // Declare modules at the crate root
+mod cfg;
 mod svc;
 mod task;
-mod cfg;
 mod util;
 
 // Import the necessary modules
+use crate::svc::atcmd::Urc;
 use task::can::*;
 use task::lte::*;
-use task::wifi::*;
 use task::mqtt::*;
-use crate::svc::atcmd::Urc;
+use task::wifi::*;
 
 // Import the necessary modules
-use static_cell::StaticCell;
 use atat::{ResponseSlot, UrcChannel};
 use embassy_executor::Spawner;
 use embassy_net::{Stack, StackResources};
@@ -33,6 +32,8 @@ use esp_hal::{
     uart::{Config, Uart},
 };
 use esp_wifi::{init, wifi::WifiStaDevice, EspWifiController};
+
+use static_cell::StaticCell;
 
 macro_rules! mk_static {
     ($t:ty,$val:expr) => {{

@@ -1,10 +1,10 @@
 use super::response::*;
+//use atat::atat_derive::AtatCmd;
 use atat::atat_derive::AtatUrc;
-use atat::atat_derive::AtatCmd;
 
-#[derive(Clone, AtatCmd)]
-#[at_cmd("", NoResponse, timeout_ms = 1000)]
-pub struct AT;
+//#[derive(Clone, AtatCmd)]
+//#[at_cmd("", NoResponse, timeout_ms = 1000)]
+//pub struct AT;
 
 #[derive(Clone, AtatUrc, Debug)]
 pub enum Urc {

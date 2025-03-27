@@ -1,4 +1,3 @@
-
 use core::ffi::CStr;
 
 pub const MQTT_CSTR_SERVER_NAME: &CStr = c"broker.bluleap.ai";
