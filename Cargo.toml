@@ -1,5 +1,5 @@
 [package]
-name = "iot-tracker-rs"
+name = "telematics-control-unit"
 version = "0.1.0"
 authors = ["tuemb <nvtu96@gmail.com>"]
 edition = "2021"
@@ -81,5 +81,5 @@ default = [
     "esp-storage/esp32c6",
     "esp-hal-embassy/esp32c6",
 ]
-
+#ota = []
 wdg = []

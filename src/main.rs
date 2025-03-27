@@ -1,10 +1,25 @@
 #![no_std]
 #![no_main]
 
+// Declare modules at the crate root
+mod svc;
+mod task;
+mod cfg;
+mod util;
+
+// Import the necessary modules
+use task::can::*;
+use task::lte::*;
+use task::wifi::*;
+use task::mqtt::*;
+use crate::svc::atcmd::Urc;
+
+// Import the necessary modules
+use static_cell::StaticCell;
 use atat::{ResponseSlot, UrcChannel};
 use embassy_executor::Spawner;
 use embassy_net::{Stack, StackResources};
-use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
+use embassy_sync::channel::Channel;
 use embassy_time::Timer;
 use esp_backtrace as _;
 #[cfg(feature = "wdg")]
@@ -27,26 +42,6 @@ macro_rules! mk_static {
         x
     }};
 }
-
-#[derive(Debug)]
-#[allow(dead_code)]
-struct CanFrame {
-    id: u32,
-    len: u8,
-    data: [u8; 8],
-}
-
-type TwaiOutbox = Channel<NoopRawMutex, CanFrame, 16>;
-
-mod at_command;
-mod dns;
-mod esp_nvs;
-mod mqtt;
-mod tasks;
-use static_cell::StaticCell;
-use tasks::{
-    can_receiver, connection, mqtt_handler, net_task, quectel_rx_handler, quectel_tx_handler,
-};
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) -> ! {
@@ -103,10 +98,10 @@ async fn main(spawner: Spawner) -> ! {
         .into_async();
     let (uart_rx, uart_tx) = uart0.split();
     static RES_SLOT: ResponseSlot<1024> = ResponseSlot::new();
-    static URC_CHANNEL: UrcChannel<at_command::common::Urc, 128, 3> = UrcChannel::new();
+    static URC_CHANNEL: UrcChannel<Urc, 128, 3> = UrcChannel::new();
     static INGRESS_BUF: StaticCell<[u8; 1024]> = StaticCell::new();
     let ingress = atat::Ingress::new(
-        atat::AtDigester::<at_command::common::Urc>::default(),
+        atat::AtDigester::<Urc>::default(),
         INGRESS_BUF.init([0; 1024]),
         &RES_SLOT,
         &URC_CHANNEL,
