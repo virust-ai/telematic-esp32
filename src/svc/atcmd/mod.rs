@@ -1,5 +1,5 @@
 pub mod general;
 pub mod response;
-pub mod atcmd;
+pub mod urc;
 
-pub use atcmd::*;
+pub use urc::Urc;
