@@ -3,10 +3,14 @@
 
 extern crate alloc;
 use alloc::format;
+use alloc::string::ToString;
 use embassy_executor::Spawner;
 use embassy_net::Runner;
 use embassy_net::StackResources;
 use embassy_time::{Duration, Timer};
+use esp32_mender_client::external::esp_hal_ota::OtaImgState;
+use esp32_mender_client::mender_mcu_client::platform::flash::mender_flash::mender_flash_confirm_image;
+use esp32_mender_client::mender_mcu_client::platform::flash::mender_flash::mender_flash_is_image_confirmed;
 use esp_backtrace as _;
 use esp_hal::efuse::Efuse;
 use esp_hal::{clock::CpuClock, rng::Trng, timer::timg::TimerGroup};
@@ -20,10 +24,6 @@ use esp_wifi::{
     },
     EspWifiController,
 };
-use alloc::string::ToString;
-use esp32_mender_client::external::esp_hal_ota::OtaImgState;
-use esp32_mender_client::mender_mcu_client::platform::flash::mender_flash::mender_flash_confirm_image;
-use esp32_mender_client::mender_mcu_client::platform::flash::mender_flash::mender_flash_is_image_confirmed;
 
 use esp32_mender_client::external::esp_hal_ota::Ota;
 use esp32_mender_client::mender_mcu_client::addon::inventory::mender_inventory::{
@@ -36,15 +36,14 @@ use esp32_mender_client::mender_mcu_client::core::mender_utils::{
     DeploymentStatus, KeyStore, KeyStoreItem, MenderResult, MenderStatus,
 };
 use esp32_mender_client::mender_mcu_client::{
-    addon::inventory::mender_inventory,
-    core::mender_client,
+    addon::inventory::mender_inventory, core::mender_client,
     platform::scheduler::mender_scheduler::work_queue_task,
 };
 #[allow(unused_imports)]
 use esp32_mender_client::{log_debug, log_error, log_info, log_warn};
 
-const WIFI_SSID: &str = env!("MENDER_CLIENT_WIFI_SSID");
-const WIFI_PSK: &str = env!("MENDER_CLIENT_WIFI_PSK");
+const WIFI_SSID: &str = env!("WIFI_SSID");
+const WIFI_PSWD: &str = env!("WIFI_PSWD");
 
 macro_rules! mk_static {
     ($t:ty,$val:expr) => {{
@@ -139,7 +138,11 @@ async fn main(spawner: Spawner) -> ! {
     let config = embassy_net::Config::dhcpv4(Default::default());
 
     let seed = (trng.rng.random() as u64) << 32 | trng.rng.random() as u64;
-    println!("Test {}-{}", env!("ESP_DEVICE_NAME"), env!("ESP_DEVICE_VERSION"));
+    println!(
+        "Test {}-{}",
+        env!("ESP_DEVICE_NAME"),
+        env!("ESP_DEVICE_VERSION")
+    );
     // // Init network stack
     // let stack = &*mk_static!(
     //     Stack<WifiDevice<'_, WifiStaDevice>>,
@@ -188,7 +191,9 @@ async fn main(spawner: Spawner) -> ! {
         .spawn(connection(controller))
         .expect("connection spawn");
     spawner.spawn(net_task(runner)).expect("net task spawn");
-    spawner.spawn(work_queue_task()).expect("work queue task spawn");
+    spawner
+        .spawn(work_queue_task())
+        .expect("work queue task spawn");
     spawner.spawn(test_task()).expect("test task spawn");
 
     loop {
@@ -334,7 +339,7 @@ async fn connection(
         if !matches!(controller.is_started(), Ok(true)) {
             let client_config = Configuration::Client(ClientConfiguration {
                 ssid: WIFI_SSID.try_into().expect("Wifi ssid parse"),
-                password: WIFI_PSK.try_into().expect("Wifi psk parse"),
+                password: WIFI_PSWD.try_into().expect("Wifi psk parse"),
                 ..Default::default()
             });
             controller.set_configuration(&client_config).unwrap();

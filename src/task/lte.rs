@@ -51,16 +51,10 @@ enum State {
     SetModemFunctionality,
     UploadFiles,
     CheckNetworkRegistration,
-    MqttOpenState,
-    MqttConnectState,
+    MqttOpenConnection,
+    MqttConnectBroker,
     MqttPublishData,
-    ErrorState,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        State::ResetHardware
-    }
+    ErrorConnection,
 }
 
 async fn handle_publish_mqtt_data(
@@ -637,32 +631,32 @@ pub async fn quectel_tx_handler(
                     State::CheckNetworkRegistration
                 } else {
                     error!("File upload failed, resetting hardware");
-                    State::ErrorState
+                    State::ErrorConnection
                 };
             }
             State::CheckNetworkRegistration => {
                 info!("Quectel: Check Network Registration");
                 let res = check_network_registration(&mut client).await;
                 state = if res {
-                    State::MqttOpenState
+                    State::MqttOpenConnection
                 } else {
                     error!("Network registration failed, resetting hardware");
-                    State::ErrorState
+                    State::ErrorConnection
                 };
             }
-            State::MqttOpenState => {
+            State::MqttOpenConnection => {
                 info!("Opening MQTT connection");
                 match open_mqtt_connection(&mut client, urc_channel).await {
                     Ok(_) => {
                         info!("MQTT connection opened successfully");
-                        state = State::MqttConnectState;
+                        state = State::MqttConnectBroker;
                     }
                     Err(e) => {
                         error!("Failed to open MQTT connection: {:?}", e);
                     }
                 }
             }
-            State::MqttConnectState => {
+            State::MqttConnectBroker => {
                 info!("Connecting to MQTT broker");
                 match connect_mqtt_broker(&mut client, urc_channel).await {
                     Ok(_) => {
@@ -684,7 +678,7 @@ pub async fn quectel_tx_handler(
                     error!("MQTT publish failed");
                 }
             }
-            State::ErrorState => {
+            State::ErrorConnection => {
                 error!("System in error state - attempting recovery");
                 embassy_time::Timer::after(embassy_time::Duration::from_secs(5)).await;
                 state = State::ResetHardware;
