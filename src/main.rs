@@ -147,15 +147,14 @@ async fn main(spawner: Spawner) -> ! {
     spawner.spawn(can_receiver(can_rx, channel)).ok();
     spawner.spawn(connection(controller)).ok();
     spawner.spawn(net_task(runner)).ok();
-    //spawner
-    //    .spawn(mqtt_handler(
-    //        stack,
-    //        trng,
-    //        channel,
-    //        peripherals.SHA,
-    //        peripherals.RSA,
-    //    ))
-    //    .ok();
+    spawner
+        .spawn(mqtt_handler(
+            stack,
+            channel,
+            peripherals.SHA,
+            peripherals.RSA,
+        ))
+        .ok();
     spawner.spawn(quectel_rx_handler(ingress, uart_rx)).ok();
     spawner
         .spawn(quectel_tx_handler(

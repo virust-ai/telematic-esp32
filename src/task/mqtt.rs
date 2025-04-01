@@ -3,10 +3,7 @@ use embassy_net::{
     Ipv4Address, Stack,
 };
 use embassy_time::{Duration, Timer};
-use esp_hal::{
-    peripherals::{RSA, SHA},
-    rng::Trng,
-};
+use esp_hal::peripherals::{RSA, SHA};
 use esp_mbedtls::{asynch::Session, Certificates, Mode, Tls, TlsVersion, X509};
 use esp_println::println;
 use log::{error, info};
@@ -19,7 +16,6 @@ use crate::task::can::TwaiOutbox;
 #[embassy_executor::task]
 pub async fn mqtt_handler(
     stack: &'static Stack<'static>,
-    _trng: &'static mut Trng<'static>,
     channel: &'static TwaiOutbox,
     mut sha: SHA,
     mut rsa: RSA,
