@@ -9,9 +9,11 @@ mod util;
 
 // Import the necessary modules
 use crate::svc::atcmd::Urc;
+
 use task::can::*;
 use task::lte::*;
 use task::mqtt::*;
+use task::ota::ota_handler;
 use task::wifi::*;
 
 // Import the necessary modules
@@ -57,8 +59,10 @@ async fn main(spawner: Spawner) -> ! {
     let timg1 = TimerGroup::new(peripherals.TIMG1);
     esp_hal_embassy::init(timg1.timer0);
     let trng = &mut *mk_static!(Trng<'static>, Trng::new(peripherals.RNG, peripherals.ADC1));
-    // let mut trng = Trng::new(peripherals.RNG, peripherals.ADC1);
-    // let mut rng = Rng::new(peripherals.RNG);
+    //let trng = &*mk_static!(
+    //    Mutex<Trng<'static>, EspWifiController<'static>>,
+    //    Mutex::new(Trng::new(peripherals.RNG, peripherals.ADC1))
+    //);
     let init = &*mk_static!(
         EspWifiController<'static>,
         init(timg0.timer0, trng.rng, peripherals.RADIO_CLK).unwrap()
@@ -143,15 +147,15 @@ async fn main(spawner: Spawner) -> ! {
     spawner.spawn(can_receiver(can_rx, channel)).ok();
     spawner.spawn(connection(controller)).ok();
     spawner.spawn(net_task(runner)).ok();
-    spawner
-        .spawn(mqtt_handler(
-            stack,
-            trng,
-            channel,
-            peripherals.SHA,
-            peripherals.RSA,
-        ))
-        .ok();
+    //spawner
+    //    .spawn(mqtt_handler(
+    //        stack,
+    //        trng,
+    //        channel,
+    //        peripherals.SHA,
+    //        peripherals.RSA,
+    //    ))
+    //    .ok();
     spawner.spawn(quectel_rx_handler(ingress, uart_rx)).ok();
     spawner
         .spawn(quectel_tx_handler(
@@ -161,6 +165,11 @@ async fn main(spawner: Spawner) -> ! {
             &URC_CHANNEL,
         ))
         .ok();
+    spawner
+        .spawn(ota_handler(spawner, trng, stack))
+        .expect("Failed to spawn OTA handler task");
+
+    // WDG feed task
     loop {
         Timer::after_secs(2).await;
         #[cfg(feature = "wdg")]

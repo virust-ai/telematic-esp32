@@ -1,11 +1,15 @@
 [target.riscv32imac-unknown-none-elf]
 runner = "espflash flash --monitor"
 
-
 [env]
 ESP_LOG = "INFO"
+ESP_DEVICE_TYPE="esp32c6"
+ESP_DEVICE_NAME="esp32c6-example"
+ESP_DEVICE_VERSION="0.1.1"
+
 WIFI_SSID="Kim Ngan"
 WIFI_PSWD="kimngan1501"
+
 MQTT_SERVER_NAME = "broker.bluleap.ai"
 MQTT_SERVER_PORT = "8883"
 MQTT_CLIENT_ID = "5680ff91-2d1c-4d0a-a8f7-f9c2a2066740"

@@ -49,7 +49,7 @@ enum State {
     EnableGps,
     EnableAssistGps,
     SetModemFunctionality,
-    UploadFiles,
+    UploadMqttCert,
     CheckNetworkRegistration,
     MqttOpenConnection,
     MqttConnectBroker,
@@ -149,7 +149,7 @@ async fn reset_modem(pen: &mut Output<'static>) {
     embassy_time::Timer::after(embassy_time::Duration::from_secs(5)).await;
 }
 
-pub async fn upload_files(
+pub async fn upload_mqtt_cert_files(
     client: &mut Client<'static, UartTx<'static, Async>, 1024>,
     urc_channel: &'static UrcChannel<Urc, 128, 3>,
     ca_chain: &[u8],
@@ -619,14 +619,19 @@ pub async fn quectel_tx_handler(
                         })
                         .await,
                 ) {
-                    state = State::UploadFiles;
+                    state = State::UploadMqttCert;
                 }
             }
-            State::UploadFiles => {
+            State::UploadMqttCert => {
                 info!("Quectel: Upload Files");
-                let res: bool =
-                    upload_files(&mut client, urc_channel, ca_chain, certificate, private_key)
-                        .await;
+                let res: bool = upload_mqtt_cert_files(
+                    &mut client,
+                    urc_channel,
+                    ca_chain,
+                    certificate,
+                    private_key,
+                )
+                .await;
                 state = if res {
                     State::CheckNetworkRegistration
                 } else {

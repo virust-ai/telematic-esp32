@@ -2,5 +2,5 @@
 pub mod can;
 pub mod lte;
 pub mod mqtt;
-//pub mod ota;
+pub mod ota;
 pub mod wifi;

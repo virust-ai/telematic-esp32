@@ -1,32 +1,19 @@
-#![no_std]
-#![no_main]
-
 extern crate alloc;
 use alloc::format;
 use alloc::string::ToString;
 use embassy_executor::Spawner;
-use embassy_net::Runner;
-use embassy_net::StackResources;
+use embassy_net::Stack;
 use embassy_time::{Duration, Timer};
 use esp32_mender_client::external::esp_hal_ota::OtaImgState;
 use esp32_mender_client::mender_mcu_client::platform::flash::mender_flash::mender_flash_confirm_image;
 use esp32_mender_client::mender_mcu_client::platform::flash::mender_flash::mender_flash_is_image_confirmed;
 use esp_backtrace as _;
 use esp_hal::efuse::Efuse;
-use esp_hal::{clock::CpuClock, rng::Trng, timer::timg::TimerGroup};
-use esp_println::println;
+use esp_hal::rng::Trng;
 use esp_storage::FlashStorage;
-use esp_wifi::{
-    init,
-    wifi::{
-        ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent, WifiStaDevice,
-        WifiState,
-    },
-    EspWifiController,
-};
 
 use esp32_mender_client::external::esp_hal_ota::Ota;
-use esp32_mender_client::mender_mcu_client::addon::inventory::mender_inventory::{
+use esp32_mender_client::mender_mcu_client::add_ons::inventory::mender_inventory::{
     MenderInventoryConfig, MENDER_INVENTORY_ADDON_INSTANCE,
 };
 use esp32_mender_client::mender_mcu_client::core::mender_client::{
@@ -36,23 +23,11 @@ use esp32_mender_client::mender_mcu_client::core::mender_utils::{
     DeploymentStatus, KeyStore, KeyStoreItem, MenderResult, MenderStatus,
 };
 use esp32_mender_client::mender_mcu_client::{
-    addon::inventory::mender_inventory, core::mender_client,
+    add_ons::inventory::mender_inventory, core::mender_client,
     platform::scheduler::mender_scheduler::work_queue_task,
 };
 #[allow(unused_imports)]
 use esp32_mender_client::{log_debug, log_error, log_info, log_warn};
-
-const WIFI_SSID: &str = env!("WIFI_SSID");
-const WIFI_PSWD: &str = env!("WIFI_PSWD");
-
-macro_rules! mk_static {
-    ($t:ty,$val:expr) => {{
-        static STATIC_CELL: static_cell::StaticCell<$t> = static_cell::StaticCell::new();
-        #[deny(unused_attributes)]
-        let x = STATIC_CELL.uninit().write(($val));
-        x
-    }};
-}
 
 // Example usage:
 fn network_connect_cb() -> MenderResult<()> {
@@ -113,54 +88,12 @@ static INVENTORY_CONFIG: MenderInventoryConfig = MenderInventoryConfig {
     refresh_interval: 0,
 };
 
-#[esp_hal_embassy::main]
-async fn main(spawner: Spawner) -> ! {
-    esp_println::logger::init_logger_from_env();
-    let peripherals = esp_hal::init({
-        let mut config = esp_hal::Config::default();
-        config.cpu_clock = CpuClock::max();
-        config
-    });
-    esp_alloc::heap_allocator!(120 * 1024);
-    let timg0 = TimerGroup::new(peripherals.TIMG0);
-    let timg1 = TimerGroup::new(peripherals.TIMG1);
-    esp_hal_embassy::init(timg1.timer0);
-    let trng = &mut *mk_static!(Trng<'static>, Trng::new(peripherals.RNG, peripherals.ADC1));
-
-    let init = &*mk_static!(
-        EspWifiController<'static>,
-        init(timg0.timer0, trng.rng, peripherals.RADIO_CLK).unwrap()
-    );
-
-    let wifi = peripherals.WIFI;
-    let (wifi_interface, controller) =
-        esp_wifi::wifi::new_with_mode(init, wifi, WifiStaDevice).unwrap();
-    let config = embassy_net::Config::dhcpv4(Default::default());
-
-    let seed = (trng.rng.random() as u64) << 32 | trng.rng.random() as u64;
-    println!(
-        "Test {}-{}",
-        env!("ESP_DEVICE_NAME"),
-        env!("ESP_DEVICE_VERSION")
-    );
-    // // Init network stack
-    // let stack = &*mk_static!(
-    //     Stack<WifiDevice<'_, WifiStaDevice>>,
-    //     Stack::new(
-    //         wifi_interface,
-    //         config,
-    //         mk_static!(StackResources<3>, StackResources::<3>::new()),
-    //         seed
-    //     )
-    // );
-    // Init network stack
-    let (stack, runner) = embassy_net::new(
-        wifi_interface,
-        config,
-        mk_static!(StackResources<3>, StackResources::<3>::new()),
-        seed,
-    );
-
+#[embassy_executor::task]
+pub async fn ota_handler(
+    spawner: Spawner,
+    trng: &'static mut Trng<'static>,
+    stack: &'static Stack<'static>,
+) -> ! {
     let mut ota = match Ota::new(FlashStorage::new()) {
         Ok(ota) => ota,
         Err(e) => {
@@ -188,31 +121,8 @@ async fn main(spawner: Spawner) -> ! {
     }
 
     spawner
-        .spawn(connection(controller))
-        .expect("connection spawn");
-    spawner.spawn(net_task(runner)).expect("net task spawn");
-    spawner
         .spawn(work_queue_task())
         .expect("work queue task spawn");
-    spawner.spawn(test_task()).expect("test task spawn");
-
-    loop {
-        if stack.is_link_up() {
-            break;
-        }
-        Timer::after(Duration::from_millis(500)).await;
-    }
-
-    log_info!("Waiting to get IP address...");
-    loop {
-        if let Some(config) = stack.config_v4() {
-            log_info!("Got IP: {}", config.address);
-            break;
-        }
-        Timer::after(Duration::from_millis(500)).await;
-    }
-
-    log_info!("Starting async main...");
 
     let mac_address = Efuse::mac_address();
     let mac_str = format!(
@@ -257,7 +167,7 @@ async fn main(spawner: Spawner) -> ! {
         restart_cb,
     );
 
-    mender_client_init(&config, &callbacks, trng, stack)
+    mender_client_init(&config, &callbacks, trng, *stack)
         .await
         .expect("Failed to init mender client");
 
@@ -317,66 +227,5 @@ async fn main(spawner: Spawner) -> ! {
 
     loop {
         Timer::after(Duration::from_secs(1)).await;
-    }
-}
-
-#[embassy_executor::task]
-async fn connection(
-    mut controller: WifiController<'static>,
-    //stack: &'static Stack<WifiDevice<'static, WifiStaDevice>>,
-) {
-    log_info!("start connection task");
-    log_info!("turn off power saving mode");
-    controller
-        .set_power_saving(esp_wifi::config::PowerSaveMode::None)
-        .unwrap();
-    loop {
-        if esp_wifi::wifi::wifi_state() == WifiState::StaConnected {
-            // wait until we're no longer connected
-            controller.wait_for_event(WifiEvent::StaDisconnected).await;
-            Timer::after(Duration::from_millis(5000)).await
-        }
-        if !matches!(controller.is_started(), Ok(true)) {
-            let client_config = Configuration::Client(ClientConfiguration {
-                ssid: WIFI_SSID.try_into().expect("Wifi ssid parse"),
-                password: WIFI_PSWD.try_into().expect("Wifi psk parse"),
-                ..Default::default()
-            });
-            controller.set_configuration(&client_config).unwrap();
-            log_info!("Starting wifi");
-            controller.start_async().await.unwrap();
-            log_info!("Wifi started!");
-        }
-        log_info!("About to connect...");
-
-        match controller.connect_async().await {
-            Ok(_) => {
-                log_info!("Wifi connected!");
-
-                // loop {
-                //     if stack.is_link_up() {
-                //         break;
-                //     }
-                //     Timer::after(Duration::from_millis(500)).await;
-                // }
-            }
-            Err(e) => {
-                log_error!("Failed to connect to wifi: {:?}", e);
-                Timer::after(Duration::from_millis(5000)).await
-            }
-        }
-    }
-}
-
-#[embassy_executor::task]
-async fn net_task(mut runner: Runner<'static, WifiDevice<'static, WifiStaDevice>>) {
-    runner.run().await
-}
-
-#[embassy_executor::task]
-async fn test_task() {
-    loop {
-        log_info!("test_task");
-        Timer::after(Duration::from_secs(2)).await;
     }
 }
