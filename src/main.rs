@@ -13,6 +13,7 @@ use crate::svc::atcmd::Urc;
 use task::can::*;
 use task::lte::*;
 use task::mqtt::*;
+#[cfg(feature = "ota")]
 use task::ota::ota_handler;
 use task::wifi::*;
 
@@ -21,7 +22,7 @@ use atat::{ResponseSlot, UrcChannel};
 use embassy_executor::Spawner;
 use embassy_net::{Stack, StackResources};
 use embassy_sync::channel::Channel;
-use embassy_time::Timer;
+use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 #[cfg(feature = "wdg")]
 use esp_hal::rtc_cntl::{Rtc, RwdtStage};
@@ -165,9 +166,18 @@ async fn main(spawner: Spawner) -> ! {
         ))
         .ok();
     #[cfg(feature = "ota")]
-    spawner
-        .spawn(ota_handler(spawner, trng, stack))
-        .expect("Failed to spawn OTA handler task");
+    //wait until wifi connected
+    {
+        loop {
+            if stack.is_link_up() {
+                break;
+            }
+            Timer::after(Duration::from_millis(500)).await;
+        }
+        spawner
+            .spawn(ota_handler(spawner, trng, stack))
+            .expect("Failed to spawn OTA handler task");
+    }
 
     // WDG feed task
     loop {
