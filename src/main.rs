@@ -22,7 +22,9 @@ use atat::{ResponseSlot, UrcChannel};
 use embassy_executor::Spawner;
 use embassy_net::{Stack, StackResources};
 use embassy_sync::channel::Channel;
-use embassy_time::{Duration, Timer};
+#[cfg(feature = "ota")]
+use embassy_time::Duration;
+use embassy_time::Timer;
 use esp_backtrace as _;
 #[cfg(feature = "wdg")]
 use esp_hal::rtc_cntl::{Rtc, RwdtStage};
