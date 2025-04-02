@@ -164,6 +164,7 @@ async fn main(spawner: Spawner) -> ! {
             &URC_CHANNEL,
         ))
         .ok();
+    #[cfg(feature = "ota")]
     spawner
         .spawn(ota_handler(spawner, trng, stack))
         .expect("Failed to spawn OTA handler task");

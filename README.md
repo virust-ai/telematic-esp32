@@ -83,8 +83,16 @@ cargo install espflash
 
 ### Compile and Run
 
+#### Without OTA
+
 ```bash
 cargo run --release
+```
+
+#### With OTA
+
+```bash
+cargo run --release --feature ota
 ```
 
 ## 🤝 Community
