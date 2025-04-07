@@ -3,13 +3,14 @@
 
 // Declare modules at the crate root
 mod cfg;
+mod hal;
 mod svc;
 mod task;
 mod util;
 
 // Import the necessary modules
+//use crate::hal::flash;
 use crate::svc::atcmd::Urc;
-
 use task::can::*;
 use task::lte::*;
 use task::mqtt::*;

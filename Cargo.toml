@@ -88,3 +88,9 @@ default = [
 ]
 ota = []
 wdg = []
+test = []
+
+# These dependencies are not included in the compiled binary when building the project for release
+# (cargo build --release).
+[dev-dependencies]
+probe-rs = "0.27.0"
