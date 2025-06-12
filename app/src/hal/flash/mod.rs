@@ -33,6 +33,7 @@ use esp_hal::spi::master::Spi;
 use esp_hal::Blocking;
 use heapless::Vec; // Use Blocking as the mode type
 
+#[allow(dead_code)]
 // SPI setup and constants
 const WRITE_ENABLE: u8 = 0x06;
 const READ_JEDEC_ID: u8 = 0x9F;

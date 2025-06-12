@@ -2,7 +2,7 @@ use std::env;
 use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::path::Path;
-
+#[allow(clippy::uninlined_format_args)]
 fn generate_net_cfg() {
     // Tell Cargo to rebuild if any environment variables change
     println!("cargo:rerun-if-env-changed=WIFI_PSWD");
@@ -40,6 +40,8 @@ pub const MQTT_CLIENT_ID: &str = "{client_id}";
 pub const MQTT_USR_NAME: &str = "{usr_name}";
 pub const MQTT_USR_PASS: [u8; 9] = *b"{usr_pass}";
 "#,
+        ssid = ssid,
+        pswd = pswd,
         server_name = server_name,
         server_port = server_port,
         client_id = client_id,

@@ -1,6 +1,5 @@
 [workspace]
-#members = ["app", "tests/modules"]
-members = ["app"]
+members = ["app", "tests/modules"]
 
 # Rust edition
 resolver = "2"

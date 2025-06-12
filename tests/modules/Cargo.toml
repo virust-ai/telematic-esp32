@@ -64,24 +64,6 @@ smoltcp = { version = "0.12.0", default-features = false, features = [
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde-json-core = { version = "0.6.0", default-features = false }
 
-# Add dev dependencies explicitly
-[dev-dependencies]
-probe-rs = "0.27.0"
-
-[profile.dev]
-# Rust debug is too slow.
-# For debug builds always builds with some optimization
-opt-level = "s"
-
-[profile.release]
-codegen-units = 1        # LLVM can perform better optimizations using a single thread
-debug = 2
-debug-assertions = false
-incremental = false
-lto = 'fat'
-opt-level = 's'
-overflow-checks = false
-
 [features]
 default = [
     "dep:esp-hal",
@@ -91,14 +73,8 @@ default = [
     "esp-storage/esp32c6",
     "esp-hal-embassy/esp32c6",
 ]
-ota = []
-wdg = []
-test = [
-    "default",
-] # Make test depend on default features to ensure all required dependencies are available
 
 # Add a test target specific for ESP32C6
-[[test]]
+[[bin]]
 name = "test_flash"
-harness = false              # Required for embassy-executor
-required-features = ["test"] # Ensure test feature is enabled
+harness = false     # Required for embassy-executor
