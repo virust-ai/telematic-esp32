@@ -96,15 +96,14 @@ pub async fn mqtt_handler(
                 .unwrap();
                 writeln!(
                     &mut mqtt_topic,
-                    "channels/{}/messages/client/can",
-                    MQTT_CLIENT_ID
+                    "channels/{MQTT_CLIENT_ID}/messages/client/can"
                 )
                 .unwrap();
                 if let Err(e) = mqtt_client
                     .publish(&mqtt_topic, frame_str.as_bytes(), mqttrust::QoS::AtMostOnce)
                     .await
                 {
-                    error!("Failed to publish MQTT packet: {:?}", e);
+                    error!("Failed to publish MQTT packet: {e:?}");
                     break;
                 }
                 println!("{frame_str}");

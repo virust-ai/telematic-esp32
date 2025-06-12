@@ -47,7 +47,7 @@ jobs:
         run: cargo clippy --target riscv32imac-unknown-none-elf --features default -- -D warnings
         continue-on-error: false
 
-      - name: Clippy withou ota
+      - name: Clippy without ota
         run: cargo clippy --target riscv32imac-unknown-none-elf --features ota -- -D warnings
         continue-on-error: false
 #  build:

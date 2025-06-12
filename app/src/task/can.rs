@@ -45,7 +45,7 @@ pub async fn can_receiver(
                 }
             }
             Err(e) => {
-                error!("TWAIT Received error: {:?}\r", e);
+                error!("TWAIT Received error: {e:?}\r");
             }
         }
     }

@@ -1,59 +1,36 @@
 // Import core macros needed by Serde in no_std environment
-#[allow(unused_imports)]
-use core::concat;
-#[allow(unused_imports)]
-use core::debug_assert_eq;
-#[allow(unused_imports)]
-use core::format_args;
-#[allow(unused_imports)]
-use core::marker::Sized;
-#[allow(unused_imports)]
-use core::option::Option;
-#[allow(unused_imports)]
-use core::option::Option::{None, Some};
-#[allow(unused_imports)]
-use core::panic;
-#[allow(unused_imports)]
-use core::result::Result;
-#[allow(unused_imports)]
-use core::result::Result::{Err, Ok};
-#[allow(unused_imports)]
-use core::stringify;
-#[allow(unused_imports)]
-use core::unimplemented;
-#[allow(unused_imports)]
-use core::write;
-
 use core::marker::PhantomData;
 use embassy_time::{Duration, Timer};
 use esp_hal::gpio::Output;
-#[allow(unused_imports)]
-use esp_hal::spi::master::Config;
+
 use esp_hal::spi::master::Spi;
 use esp_hal::Blocking;
 
 #[allow(dead_code)]
-// SPI Commands from W25Q128FV datasheet
-const WRITE_ENABLE: u8 = 0x06;
-const WRITE_DISABLE: u8 = 0x04;
-const READ_STATUS_REG1: u8 = 0x05;
-const READ_STATUS_REG2: u8 = 0x35;
-const READ_STATUS_REG3: u8 = 0x15;
-const WRITE_STATUS_REG1: u8 = 0x01;
-const WRITE_STATUS_REG2: u8 = 0x31;
-const WRITE_STATUS_REG3: u8 = 0x11;
-const READ_JEDEC_ID: u8 = 0x9F;
-const READ_DATA: u8 = 0x03;
-const FAST_READ: u8 = 0x0B;
-const PAGE_PROGRAM: u8 = 0x02;
-const SECTOR_ERASE_4KB: u8 = 0x20;
-const BLOCK_ERASE_32KB: u8 = 0x52;
-const BLOCK_ERASE_64KB: u8 = 0xD8;
-const CHIP_ERASE: u8 = 0xC7;
-const POWER_DOWN: u8 = 0xB9;
-const RELEASE_POWER_DOWN: u8 = 0xAB;
-const ENABLE_RESET: u8 = 0x66;
-const RESET_DEVICE: u8 = 0x99;
+#[derive(Clone, Copy)]
+#[repr(u8)]
+pub enum SpiCommand {
+    WriteEnable = 0x06,
+    WriteDisable = 0x04,
+    ReadStatusReg1 = 0x05,
+    ReadStatusReg2 = 0x35,
+    ReadStatusReg3 = 0x15,
+    WriteStatusReg1 = 0x01,
+    WriteStatusReg2 = 0x31,
+    WriteStatusReg3 = 0x11,
+    ReadJedecId = 0x9F,
+    ReadData = 0x03,
+    FastRead = 0x0B,
+    PageProgram = 0x02,
+    SectorErase4Kb = 0x20,
+    BlockErase32Kb = 0x52,
+    BlockErase64Kb = 0xD8,
+    ChipErase = 0xC7,
+    PowerDown = 0xB9,
+    ReleasePowerDown = 0xAB,
+    EnableReset = 0x66,
+    ResetDevice = 0x99,
+}
 
 // Status Register 1 bits
 const BUSY_BIT: u8 = 0x01;
@@ -62,8 +39,8 @@ const WEL_BIT: u8 = 0x02;
 // Timing constants (from datasheet)
 const PAGE_SIZE: usize = 256;
 const SECTOR_SIZE: usize = 4096;
-const BLOCK_32K_SIZE: usize = 32768;
-const BLOCK_64K_SIZE: usize = 65536;
+//const BLOCK_32K_SIZE: usize = 32768;
+//const BLOCK_64K_SIZE: usize = 65536;
 
 pub struct W25Q128FVSG<'d> {
     spi: Spi<'d, Blocking>,
@@ -71,6 +48,7 @@ pub struct W25Q128FVSG<'d> {
     _mode: PhantomData<Blocking>,
 }
 
+#[allow(dead_code)]
 impl<'d> W25Q128FVSG<'d> {
     pub fn new(spi: Spi<'d, Blocking>, cs: Output<'d>) -> Self {
         Self {
@@ -96,7 +74,9 @@ impl<'d> W25Q128FVSG<'d> {
 
         self.cs.set_low();
         // Send command
-        self.spi.write_bytes(&[READ_JEDEC_ID]).unwrap();
+        self.spi
+            .write_bytes(&[SpiCommand::ReadJedecId as u8])
+            .unwrap();
         // Read 3 bytes of ID
         self.spi.transfer(&mut id).unwrap();
         self.cs.set_high();
@@ -109,7 +89,9 @@ impl<'d> W25Q128FVSG<'d> {
         let mut status = [0u8; 1];
 
         self.cs.set_low();
-        self.spi.write_bytes(&[READ_STATUS_REG1]).unwrap();
+        self.spi
+            .write_bytes(&[SpiCommand::ReadStatusReg1 as u8])
+            .unwrap();
         self.spi.transfer(&mut status).unwrap();
         self.cs.set_high();
 
@@ -138,7 +120,9 @@ impl<'d> W25Q128FVSG<'d> {
     /// Send write enable command
     pub async fn write_enable(&mut self) {
         self.cs.set_low();
-        self.spi.write_bytes(&[WRITE_ENABLE]).unwrap();
+        self.spi
+            .write_bytes(&[SpiCommand::WriteEnable as u8])
+            .unwrap();
         self.cs.set_high();
 
         // Verify write enable was set
@@ -148,14 +132,16 @@ impl<'d> W25Q128FVSG<'d> {
     /// Send write disable command
     pub async fn write_disable(&mut self) {
         self.cs.set_low();
-        self.spi.write_bytes(&[WRITE_DISABLE]).unwrap();
+        self.spi
+            .write_bytes(&[SpiCommand::WriteDisable as u8])
+            .unwrap();
         self.cs.set_high();
     }
 
     /// Read data from flash memory
     pub async fn read_data(&mut self, address: u32, buffer: &mut [u8]) {
         let command = [
-            READ_DATA,
+            SpiCommand::ReadData as u8,
             (address >> 16) as u8,
             (address >> 8) as u8,
             address as u8,
@@ -172,7 +158,7 @@ impl<'d> W25Q128FVSG<'d> {
     /// Fast read with dummy byte
     pub async fn fast_read(&mut self, address: u32, buffer: &mut [u8]) {
         let command = [
-            FAST_READ,
+            SpiCommand::FastRead as u8,
             (address >> 16) as u8,
             (address >> 8) as u8,
             address as u8,
@@ -198,7 +184,7 @@ impl<'d> W25Q128FVSG<'d> {
         self.write_enable().await;
 
         let command = [
-            PAGE_PROGRAM,
+            SpiCommand::PageProgram as u8,
             (address >> 16) as u8,
             (address >> 8) as u8,
             address as u8,
@@ -221,7 +207,7 @@ impl<'d> W25Q128FVSG<'d> {
         self.write_enable().await;
 
         let command = [
-            SECTOR_ERASE_4KB, // Use 0x20 for 4KB sector erase
+            SpiCommand::SectorErase4Kb as u8, // Use 0x20 for 4KB sector erase
             (address >> 16) as u8,
             (address >> 8) as u8,
             address as u8,
@@ -241,7 +227,7 @@ impl<'d> W25Q128FVSG<'d> {
         self.write_enable().await;
 
         let command = [
-            BLOCK_ERASE_64KB, // Use 0xD8 for 64KB block erase
+            SpiCommand::BlockErase64Kb as u8, // Use 0xD8 for 64KB block erase
             (address >> 16) as u8,
             (address >> 8) as u8,
             address as u8,
@@ -261,7 +247,7 @@ impl<'d> W25Q128FVSG<'d> {
         self.write_enable().await;
 
         let command = [
-            BLOCK_ERASE_32KB, // Use 0x52 for 32KB block erase
+            SpiCommand::BlockErase32Kb as u8, // Use 0x52 for 32KB block erase
             (address >> 16) as u8,
             (address >> 8) as u8,
             address as u8,
@@ -281,7 +267,9 @@ impl<'d> W25Q128FVSG<'d> {
         self.write_enable().await;
 
         self.cs.set_low();
-        self.spi.write_bytes(&[CHIP_ERASE]).unwrap();
+        self.spi
+            .write_bytes(&[SpiCommand::ChipErase as u8])
+            .unwrap();
         self.cs.set_high();
 
         // Wait for erase to complete (this can take a very long time - up to 200 seconds)
@@ -291,14 +279,18 @@ impl<'d> W25Q128FVSG<'d> {
     /// Enter power-down mode
     pub async fn power_down(&mut self) {
         self.cs.set_low();
-        self.spi.write_bytes(&[POWER_DOWN]).unwrap();
+        self.spi
+            .write_bytes(&[SpiCommand::PowerDown as u8])
+            .unwrap();
         self.cs.set_high();
     }
 
     /// Release from power-down mode
     pub async fn release_power_down(&mut self) {
         self.cs.set_low();
-        self.spi.write_bytes(&[RELEASE_POWER_DOWN]).unwrap();
+        self.spi
+            .write_bytes(&[SpiCommand::ReleasePowerDown as u8])
+            .unwrap();
         self.cs.set_high();
     }
 
@@ -306,12 +298,16 @@ impl<'d> W25Q128FVSG<'d> {
     pub async fn software_reset(&mut self) {
         // Enable reset
         self.cs.set_low();
-        self.spi.write_bytes(&[ENABLE_RESET]).unwrap();
+        self.spi
+            .write_bytes(&[SpiCommand::EnableReset as u8])
+            .unwrap();
         self.cs.set_high();
 
         // Reset device
         self.cs.set_low();
-        self.spi.write_bytes(&[RESET_DEVICE]).unwrap();
+        self.spi
+            .write_bytes(&[SpiCommand::ResetDevice as u8])
+            .unwrap();
         self.cs.set_high();
 
         // Wait for reset to complete

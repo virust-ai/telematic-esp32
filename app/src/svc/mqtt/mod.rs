@@ -1,4 +1,4 @@
-#[allow(clippy::uninlined_format_args)]
+#![allow(clippy::uninlined_format_args)]
 use embassy_net::{tcp::TcpSocket, IpEndpoint};
 use embassy_time::Instant;
 use esp_mbedtls::asynch::Session;
@@ -45,7 +45,7 @@ impl<'a> MqttClient<'a> {
         //     self.disconnect();
         // }
         if let Err(e) = self.session.connect().await {
-            error!("Failed to connect to {:?}: {:?}", end_point, e);
+            error!("Failed to connect to {end_point:?}: {e:?}");
             return Err(MqttError::Overflow);
         }
 
@@ -117,7 +117,7 @@ impl<'a> MqttClient<'a> {
         match self.session.write(&buffer[..len]).await {
             Ok(_) => Ok(()),
             Err(e) => {
-                error!("Failed to send MQTT: {:?}", e);
+                error!("Failed to send MQTT: {e:?}");
                 Err(MqttError::Overflow)
             }
         }

@@ -97,7 +97,7 @@ async fn main(_spawner: Spawner) -> ! {
 
     // Test sector erase
     let sector_addr = address; // Use the actual address, not sector number
-    info!("Erasing sector at address {:#08x}...", sector_addr);
+    info!("Erasing sector at address {sector_addr:#08x}...");
     flash.erase_sector(sector_addr).await; // Pass address, not sector number
 
     // Verify erase by reading back

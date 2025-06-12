@@ -67,19 +67,18 @@ async fn handle_publish_mqtt_data(
 
     writeln!(
         &mut mqtt_topic,
-        "channels/{}/messages/client/trip",
-        mqtt_client_id
+        "channels/{mqtt_client_id}/messages/client/trip"
     )
     .unwrap();
 
     match client.send(&RetrieveGpsRmc).await {
         Ok(res) => {
-            info!("GPS RMC data received: {:?}", res);
+            info!("GPS RMC data received: {res:?}");
             let timestamp = utc_date_to_unix_timestamp(&res.utc, &res.date);
             let mut device_id = heapless::String::new();
             let mut trip_id = heapless::String::new();
-            write!(&mut trip_id, "{}", mqtt_client_id).unwrap();
-            write!(&mut device_id, "{}", mqtt_client_id).unwrap();
+            write!(&mut trip_id, "{mqtt_client_id}").unwrap();
+            write!(&mut device_id, "{mqtt_client_id}").unwrap();
 
             let trip_data = TripData {
                 device_id,
@@ -101,7 +100,7 @@ async fn handle_publish_mqtt_data(
                     return false;
                 }
 
-                info!("MQTT payload: {}", payload);
+                info!("MQTT payload: {payload}");
                 check_result(
                     client
                         .send(&MqttPublishExtended {
@@ -120,7 +119,7 @@ async fn handle_publish_mqtt_data(
             }
         }
         Err(e) => {
-            warn!("Failed to retrieve GPS data: {:?}", e);
+            warn!("Failed to retrieve GPS data: {e:?}");
             false
         }
     }
@@ -132,11 +131,11 @@ where
 {
     match res {
         Ok(value) => {
-            info!("\t Command succeeded: {:?}", value);
+            info!("\t Command succeeded: {value:?}");
             true
         }
         Err(e) => {
-            error!("Failed to send AT command: {:?}", e);
+            error!("Failed to send AT command: {e:?}");
             false
         }
     }
@@ -165,10 +164,10 @@ pub async fn upload_mqtt_cert_files(
         embassy_time::Timer::after(embassy_time::Duration::from_secs(1)).await;
         match subscriber.try_next_message_pure() {
             Some(Urc::ListFile(file)) => {
-                log::info!("File: {:?}", file);
+                log::info!("File: {file:?}");
             }
             Some(e) => {
-                error!("Unknown URC {:?}", e);
+                error!("Unknown URC {e:?}");
             }
             None => {
                 info!("Waiting for response...");
@@ -357,12 +356,12 @@ pub async fn check_network_registration(
     while start_time.elapsed() < timeout {
         match client.send(&GetEPSNetworkRegistrationStatus {}).await {
             Ok(status) => {
-                log::info!("EPS network registration status: {:?}", status);
+                log::info!("EPS network registration status: {status:?}");
 
                 match status.stat {
                     REGISTERED_HOME => {
                         let elapsed = start_time.elapsed().as_secs();
-                        info!("Registered (Home) after {} seconds", elapsed);
+                        info!("Registered (Home) after {elapsed} seconds");
                         return true; // Successfully registered
                     }
                     UNREGISTERED_SEARCHING => {
@@ -379,7 +378,7 @@ pub async fn check_network_registration(
                     }
                     REGISTERED_ROAMING => {
                         let elapsed = start_time.elapsed().as_secs();
-                        info!("Registered (Roaming) after {} seconds", elapsed);
+                        info!("Registered (Roaming) after {elapsed} seconds");
                         return true; // Successfully registered
                     }
                     _ => {
@@ -389,7 +388,7 @@ pub async fn check_network_registration(
                 }
             }
             Err(e) => {
-                error!("Failed to get EPS network registration status: {:?}", e);
+                error!("Failed to get EPS network registration status: {e:?}");
                 return false; // Error occurred
             }
         }
@@ -446,7 +445,7 @@ pub async fn open_mqtt_connection(
 
         match subscriber.try_next_message_pure() {
             Some(Urc::MqttOpen(response)) => {
-                info!("Received MQTT open response: {:?}", response);
+                info!("Received MQTT open response: {response:?}");
                 return match response.result {
                     0 => Ok(()),
                     code => {
@@ -456,7 +455,7 @@ pub async fn open_mqtt_connection(
                 };
             }
             Some(other_urc) => {
-                info!("Received unrelated URC: {:?}", other_urc);
+                info!("Received unrelated URC: {other_urc:?}");
                 // Continue waiting for MQTT open response
             }
             None => {
@@ -484,7 +483,7 @@ pub async fn connect_mqtt_broker(
 
     // Send connect command with retries
     for attempt in 1..=MAX_RETRIES {
-        info!("MQTT connect attempt {}/{}", attempt, MAX_RETRIES);
+        info!("MQTT connect attempt {attempt}/{MAX_RETRIES}");
 
         match client
             .send(&MqttConnect {
@@ -497,11 +496,11 @@ pub async fn connect_mqtt_broker(
         {
             Ok(_) => break,
             Err(e) if attempt == MAX_RETRIES => {
-                error!("Final connect attempt failed: {:?}", e);
+                error!("Final connect attempt failed: {e:?}");
                 return Err(MqttConnectError::CommandFailed);
             }
             Err(e) => {
-                warn!("Connect attempt failed: {:?} - retrying", e);
+                warn!("Connect attempt failed: {e:?} - retrying");
                 embassy_time::Timer::after(embassy_time::Duration::from_secs(1)).await;
             }
         }
@@ -523,17 +522,17 @@ pub async fn connect_mqtt_broker(
 
         match subscriber.try_next_message_pure() {
             Some(Urc::MqttConnect(response)) => {
-                info!("Received MQTT connect response: {:?}", response);
+                info!("Received MQTT connect response: {response:?}");
                 return match response.result {
                     0 => Ok(()),
                     code => {
-                        error!("Modem connection error: {}", code);
+                        error!("Modem connection error: {code}");
                         Err(MqttConnectError::ModemError(code))
                     }
                 };
             }
             Some(other_urc) => {
-                debug!("Ignoring unrelated URC: {:?}", other_urc);
+                debug!("Ignoring unrelated URC: {other_urc:?}");
             }
             None => {
                 trace!("Waiting for MQTT connect response...");
@@ -657,7 +656,7 @@ pub async fn quectel_tx_handler(
                         state = State::MqttConnectBroker;
                     }
                     Err(e) => {
-                        error!("Failed to open MQTT connection: {:?}", e);
+                        error!("Failed to open MQTT connection: {e:?}");
                     }
                 }
             }
@@ -669,7 +668,7 @@ pub async fn quectel_tx_handler(
                         state = State::MqttPublishData;
                     }
                     Err(e) => {
-                        error!("MQTT connection failed: {:?}", e);
+                        error!("MQTT connection failed: {e:?}");
                     }
                 }
             }
