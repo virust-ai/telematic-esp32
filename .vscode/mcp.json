@@ -1,0 +1,71 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "github-pat",
+      "password": true,
+      "description": "github_pat_11BHEM5NY0gXwofEPsA89r_oPtHj1DF9CdTaRdVtEUL7oVbD7NEFl1LsIdtiOeV9MYJKOLYPP3BoayFQC"
+    }
+  ],
+  "servers": [
+    {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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"
+      }
+    },
+    {
+      "address": "127.0.0.1",
+      "port": 8080,
+      "apiRoot": "/mcp",
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-4-turbo",
+        "contextWindow": 128000
+      }
+    }
+  ],
+  "preprocessors": [
+    {
+      "name": "rust-analyzer",
+      "enabled": true
+    },
+    {
+      "name": "embedded-context",
+      "enabled": true
+    }
+  ],
+  "embeddings": {
+    "enabled": true,
+    "provider": "openai"
+  },
+  "contextProviders": [
+    {
+      "name": "esp32-docs",
+      "enabled": true,
+      "sources": [
+        {
+          "type": "web",
+          "url": "https://docs.espressif.com/projects/esp-idf/en/latest/esp32c6/"
+        }
+      ]
+    },
+    {
+      "name": "embassy-rs",
+      "enabled": true,
+      "sources": [
+        {
+          "type": "web",
+          "url": "https://embassy.dev/dev/index.html"
+        }
+      ]
+    }
+  ],
+  "codebase": {
+    "enabled": true,
+    "indexingEnabled": true,
+    "includePatterns": ["**/*.rs", "**/*.toml", "*.md"],
+    "excludePatterns": ["**/target/**"]
+  }
+}

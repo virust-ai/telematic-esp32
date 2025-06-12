@@ -1,3 +1,29 @@
+// Import core macros needed by Serde in no_std environment
+#[allow(unused_imports)]
+use core::concat;
+#[allow(unused_imports)]
+use core::debug_assert_eq;
+#[allow(unused_imports)]
+use core::format_args;
+#[allow(unused_imports)]
+use core::marker::Sized;
+#[allow(unused_imports)]
+use core::option::Option;
+#[allow(unused_imports)]
+use core::option::Option::{None, Some};
+#[allow(unused_imports)]
+use core::panic;
+#[allow(unused_imports)]
+use core::result::Result;
+#[allow(unused_imports)]
+use core::result::Result::{Err, Ok};
+#[allow(unused_imports)]
+use core::stringify;
+#[allow(unused_imports)]
+use core::unimplemented;
+#[allow(unused_imports)]
+use core::write;
+
 use core::marker::PhantomData;
 use embassy_time::{Duration, Timer};
 use esp_hal::gpio::Output;
@@ -39,12 +65,16 @@ impl<'d> W25Q128FVSG<'d> {
     }
 
     pub async fn read_id(&mut self) -> [u8; 3] {
-        let mut id = [0; 3];
+        let mut cmd = [READ_JEDEC_ID];
+        let mut id = [0u8; 3];
+
         self.cs.set_low();
-        self.spi
-            .transfer(&mut id) // Correct usage of transfer method
-            .unwrap();
+        // First send the READ_JEDEC_ID command
+        self.spi.transfer(&mut cmd).unwrap();
+        // Then read the 3 bytes of ID data
+        self.spi.transfer(&mut id).unwrap();
         self.cs.set_high();
+
         id
     }
 
