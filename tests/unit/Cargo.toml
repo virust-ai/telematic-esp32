@@ -1,7 +1,7 @@
 [package]
 name = "uint_test"
 version = "0.1.0"
-authors = ["tuemb <nvtu96@gmail.com> , tri nguyen <trongtribk06@gmail.com"]
+authors = ["tuemb <nvtu96@gmail.com> , tri nguyen <trongtribk06@gmail.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 

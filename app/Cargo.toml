@@ -1,9 +1,10 @@
 [package]
 name = "telematics-control-unit"
 version = "0.1.0"
-authors = ["tuemb <nvtu96@gmail.com> , tri nguyen <trongtribk06@gmail.com"]
+authors = ["tuemb <nvtu96@gmail.com> , tri nguyen <trongtribk06@gmail.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
+default-run = "telematics-control-unit"
 
 [dependencies]
 # Core dependencies with ESP32C6 features
