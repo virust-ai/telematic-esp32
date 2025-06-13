@@ -4,3 +4,4 @@
 **/cert/crt.pem
 **/cert/dvt.crt
 **/cert/dvt.key
+app/src/cfg/net_cfg.rs

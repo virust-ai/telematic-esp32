@@ -10,9 +10,12 @@ use crate::cfg::net_cfg::{WIFI_PSWD, WIFI_SSID};
 
 #[embassy_executor::task]
 pub async fn connection(mut controller: WifiController<'static>) {
-    println!("start connection task");
-    println!("Device capabilities: {:?}", controller.capabilities());
-    println!("turn off power saving mode");
+    println!("INFO - Start the connection task");
+    println!(
+        "INFO - Device capabilities: {:?}",
+        controller.capabilities()
+    );
+    println!("INFO - Turn off power saving mode");
     controller
         .set_power_saving(esp_wifi::config::PowerSaveMode::None)
         .unwrap();
@@ -29,16 +32,15 @@ pub async fn connection(mut controller: WifiController<'static>) {
                 ..Default::default()
             });
             controller.set_configuration(&client_config).unwrap();
-            println!("Starting wifi");
+            println!("INFO - Start WIFI");
             controller.start_async().await.unwrap();
-            println!("Wifi started!");
         }
-        println!("About to connect...");
+        println!("INFO - Connecting the WIFI...");
 
         match controller.connect_async().await {
-            Ok(_) => println!("Wifi connected!"),
+            Ok(_) => println!("INFO - Wifi connected!"),
             Err(e) => {
-                println!("Failed to connect to wifi: {e:?}");
+                println!("ERROR - Failed to connect to wifi: {e:?}");
                 Timer::after(Duration::from_millis(5000)).await
             }
         }

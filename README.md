@@ -144,6 +144,13 @@ cargo run --release
 cargo run --release --features ota
 ```
 
+#### Run unit tests
+
+```powershell
+cargo build -p unit_test --bin <test_name>
+# where <test_name> is the name of the test binary you want to run
+```
+
 ---
 
 ## 🤝 Community
